@@ -21,7 +21,7 @@ import android.preference.TwoStatePreference;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 
-import com.laudien.p1xelfehler.batterywarner.Activities.BaseActivity;
+import com.laudien.p1xelfehler.batterywarner.Activities.MainActivity.MainActivity;
 import com.laudien.p1xelfehler.batterywarner.Contract;
 import com.laudien.p1xelfehler.batterywarner.HelperClasses.RootHelper;
 import com.laudien.p1xelfehler.batterywarner.R;
@@ -36,7 +36,6 @@ import java.util.Locale;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Build.VERSION.SDK_INT;
-import static android.widget.Toast.LENGTH_SHORT;
 
 /**
  * A Fragment that shows the default settings and adds some functionality to some settings when
@@ -142,9 +141,13 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Preference preference = findPreference(key);
         if (preference == switch_darkTheme) {
-            Context context = getActivity();
-            if (context != null && context instanceof SettingsActivity) {
-                ((BaseActivity) context).showToast(R.string.theme_activated_toast, LENGTH_SHORT);
+            Activity activity = getActivity();
+            if (activity != null && activity instanceof SettingsActivity) {
+                activity.finishAffinity();
+                activity.startActivities(new Intent[]{
+                        new Intent(activity, MainActivity.class),
+                        new Intent(activity, SettingsActivity.class)
+                });
             }
         } else if (preference == ringtonePreference) {
             Context context = getActivity();
