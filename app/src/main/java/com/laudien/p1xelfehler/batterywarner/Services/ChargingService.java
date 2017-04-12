@@ -1,6 +1,8 @@
 package com.laudien.p1xelfehler.batterywarner.Services;
 
 import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,10 +19,13 @@ import android.util.Log;
 import com.laudien.p1xelfehler.batterywarner.Activities.MainActivity.GraphFragment;
 import com.laudien.p1xelfehler.batterywarner.HelperClasses.GraphDbHelper;
 import com.laudien.p1xelfehler.batterywarner.HelperClasses.NotificationHelper;
-import com.laudien.p1xelfehler.batterywarner.R;
 import com.laudien.p1xelfehler.batterywarner.HelperClasses.RootHelper;
+import com.laudien.p1xelfehler.batterywarner.R;
 
+import java.text.DateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 import static android.content.Intent.ACTION_BATTERY_CHANGED;
 import static android.media.AudioManager.RINGER_MODE_CHANGED_ACTION;
@@ -37,6 +42,7 @@ import static com.laudien.p1xelfehler.batterywarner.HelperClasses.NotificationHe
 import static com.laudien.p1xelfehler.batterywarner.HelperClasses.NotificationHelper.ID_SILENT_MODE;
 import static com.laudien.p1xelfehler.batterywarner.HelperClasses.NotificationHelper.ID_STOP_CHARGING;
 import static com.laudien.p1xelfehler.batterywarner.HelperClasses.NotificationHelper.ID_WARNING_HIGH;
+import static java.text.DateFormat.SHORT;
 
 /**
  * Background service that runs while charging. It records the charging curve with the GraphDbHelper class
@@ -354,6 +360,25 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
         // We have the time the alarm is ringing (alarmTime). Now we calculate the resume time:
         Log.d(TAG, "alarmTime = " + alarmTime);
         long timeBefore = (long) smartChargingMinutes * 60 * 1000;
+
+        DateFormat formatter = DateFormat.getDateTimeInstance(SHORT, SHORT, Locale.getDefault());
+        String message = String.format(Locale.getDefault(),
+                "%s: %d%%\n%s: %s\n%s: %d%%\n%s: %s\n%s: %d\n%s: %s",
+                "Lade bis", warningHigh,
+                "Wieder anfangen um", formatter.format(new Date(alarmTime - timeBefore)),
+                "Lade weiter bis", smartChargingLimit,
+                "Ziel-/Weckzeit", formatter.format(new Date(alarmTime)),
+                "Minuten zuvor", smartChargingMinutes,
+                "Smart Charging aktiviert", smartChargingEnabled
+        );
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(1346, new Notification.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(message)
+                .setStyle(NotificationHelper.getBigTextStyle(message))
+                .build()
+        );
+
         return alarmTime - timeBefore;
     }
 }
