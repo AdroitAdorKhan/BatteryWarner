@@ -124,6 +124,9 @@ public final class NotificationHelper {
                 case ID_NO_ALARM_TIME_FOUND:
                     showNoAlarmTimeFoundNotification(context);
                     break;
+                case ID_BATTERY_INFO:
+                    showBatteryInfoNotification(context, sharedPreferences);
+                    break;
                 default:
                     throw new IdNotFoundException();
             }
@@ -238,7 +241,7 @@ public final class NotificationHelper {
                                     .setContentTitle(context.getString(R.string.app_name))
                                     .setContentText(messageText)
                                     .setStyle(getBigTextStyle(messageText))
-                                    .setContentIntent(getDefaultClickIntent(context))
+                                    .setContentIntent(pendingIntent)
                                     .addAction(R.drawable.ic_battery_charging_full_white_48dp, context.getString(R.string.enable_charging), pendingIntent)
                                     .setOngoing(true);
                             NotificationManager notificationManager = (NotificationManager)
@@ -344,32 +347,33 @@ public final class NotificationHelper {
         notificationManager.notify(ID_NO_ALARM_TIME_FOUND, builder.build());
     }
 
-    public static void showBatteryInfoNotification(Context context, SharedPreferences sharedPreferences, BatteryData batteryData) {
+    private static void showBatteryInfoNotification(Context context, SharedPreferences sharedPreferences) {
+        BatteryData batteryData = BatteryHelper.getBatteryData();
         if (batteryData != null) {
-            RemoteViews contentView = new RemoteViews(context.getPackageName(), R.layout.notification_battery_info);
-            contentView.setImageViewResource(R.id.img_battery, R.mipmap.ic_launcher);
-            String[] data = batteryData.getAsArray(context, sharedPreferences);
-
-            int textViewId;
-            boolean somethingIsEnabled = false;
-            for (byte i = 0; i < data.length; i++) {
-                textViewId = BatteryHelper.getTextViewId(i);
-                if (data[i] != null) {
-                    somethingIsEnabled = true;
-                    contentView.setTextViewText(textViewId, data[i]);
-                } else {
-                    contentView.setViewVisibility(textViewId, GONE);
-                }
-            }
+            String[] data = batteryData.getEnabledOnly(context, sharedPreferences);
+            // basic notification
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                     .setOngoing(true)
                     .setContentIntent(getDefaultClickIntent(context))
                     .setPriority(Notification.PRIORITY_LOW)
                     .setContentTitle(context.getString(R.string.info_notification))
                     .setSmallIcon(R.mipmap.ic_launcher);
-            if (somethingIsEnabled){
+
+            // load data in notification
+            if (data.length != 0) {
+                RemoteViews contentView = new RemoteViews(context.getPackageName(), R.layout.notification_battery_info);
+                contentView.setImageViewResource(R.id.img_battery, R.mipmap.ic_launcher);
+                int textViewId;
+                for (int i = 0; i < data.length; i++) {
+                    textViewId = BatteryHelper.getTextViewId(i);
+                    if (data[i] != null) {
+                        contentView.setTextViewText(textViewId, data[i]);
+                    } else {
+                        contentView.setViewVisibility(textViewId, GONE);
+                    }
+                }
                 builder.setCustomBigContentView(contentView);
-            } else {
+            } else { // no items enabled
                 builder.setContentText(context.getString(R.string.no_items));
             }
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
