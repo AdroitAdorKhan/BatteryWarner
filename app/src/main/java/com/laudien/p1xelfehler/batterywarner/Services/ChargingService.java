@@ -373,7 +373,7 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
         );
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(1346, new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(getString(R.string.app_name))
+                .setContentTitle("Smart Charging")
                 .setContentText(message)
                 .setStyle(NotificationHelper.getBigTextStyle(message))
                 .build()
