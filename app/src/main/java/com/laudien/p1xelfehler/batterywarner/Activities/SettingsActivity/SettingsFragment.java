@@ -144,7 +144,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         if (preference == switch_darkTheme) {
             Context context = getActivity();
             if (context != null && context instanceof SettingsActivity) {
-                ((BaseActivity) context).showToast(R.string.toast_theme_changed, LENGTH_SHORT);
+                BaseActivity activity = (BaseActivity) context;
+                activity.recreate();
             }
         } else if (preference == ringtonePreference) {
             Context context = getActivity();
