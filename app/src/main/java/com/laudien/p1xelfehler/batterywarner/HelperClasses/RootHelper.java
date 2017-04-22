@@ -21,8 +21,8 @@ import eu.chainfire.libsuperuser.Shell;
 public final class RootHelper {
 
     private static final String TAG = "RootHelper";
-    //private static final String FILE_PATH = "/sys/class/power_supply/manta-battery/charging_enabled";
-    private static final String FILE_PATH = "/sys/class/power_supply/battery/charging_enabled";
+    private static final String FILE_PATH = "/sys/class/power_supply/manta-battery/subsystem/manta-battery/charging_enabled";
+    //private static final String FILE_PATH = "/sys/class/power_supply/battery/charging_enabled";
 
     /**
      * Checks if the app has root permissions. If the device is rooted, this method will trigger
