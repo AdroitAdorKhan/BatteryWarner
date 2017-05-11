@@ -45,8 +45,8 @@ import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID
  * If the pro version is used, it saves the graph using the static method in the GraphFragment.
  */
 public class ChargingService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener {
-    private SharedPreferences temporaryPrefs;
     private final String TAG = getClass().getSimpleName();
+    private SharedPreferences temporaryPrefs;
     private boolean warningHighEnabled, isGraphEnabled, acEnabled, usbEnabled, wirelessEnabled,
             stopChargingEnabled, smartChargingEnabled, smartChargingUseClock, graphChanged, usbChargingDisabled,
             isChargingPaused, isChargingResumed, alreadyNotified = false;
@@ -186,8 +186,20 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
         if (smartChargingLimit < warningHigh) {
             smartChargingLimit = warningHigh;
         }
-        isChargingPaused = temporaryPrefs.getBoolean(getString(R.string.pref_is_charging_paused), false);
         isChargingResumed = false;
+        isChargingPaused = temporaryPrefs.getBoolean(getString(R.string.pref_is_charging_paused), false);
+        // check if charging is disabled by the app
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    isChargingPaused = RootHelper.isChargingEnabled();
+                } catch (RootHelper.NotRootedException | RootHelper.NoBatteryFileFoundException e) {
+                    e.printStackTrace();
+                    isChargingPaused = false;
+                }
+            }
+        });
         // register all receivers
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
         registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
