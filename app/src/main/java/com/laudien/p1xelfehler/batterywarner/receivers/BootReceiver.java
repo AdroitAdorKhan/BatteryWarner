@@ -27,9 +27,12 @@ public class BootReceiver extends BroadcastReceiver {
             if (!sharedPreferences.getBoolean(context.getString(R.string.pref_first_start), context.getResources().getBoolean(R.bool.pref_first_start_default))) { // intro was finished
                 Intent batteryStatus = context.getApplicationContext().registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
                 if (batteryStatus != null) { // given batteryStatus intent not null
-                    // set already notified to false
+                    // set some temporary preferences
                     SharedPreferences temporaryPrefs = context.getSharedPreferences(context.getString(R.string.prefs_temporary), MODE_PRIVATE);
-                    temporaryPrefs.edit().putBoolean(context.getString(R.string.pref_already_notified), context.getResources().getBoolean(R.bool.pref_already_notified_default)).apply();
+                    temporaryPrefs.edit()
+                            .putBoolean(context.getString(R.string.pref_already_notified), context.getResources().getBoolean(R.bool.pref_already_notified_default))
+                            .putBoolean(context.getString(R.string.pref_is_charging_paused), false)
+                            .apply();
                     // start services/receivers
                     boolean isCharging = batteryStatus.getIntExtra(EXTRA_PLUGGED, -1) != 0;
                     boolean dischargingServiceEnabled = sharedPreferences.getBoolean(context.getString(R.string.pref_discharging_service_enabled), context.getResources().getBoolean(R.bool.pref_discharging_service_enabled_default));
