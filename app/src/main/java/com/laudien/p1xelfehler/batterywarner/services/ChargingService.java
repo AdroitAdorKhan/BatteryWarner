@@ -1,6 +1,7 @@
 package com.laudien.p1xelfehler.batterywarner.services;
 
 import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -20,15 +21,19 @@ import com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.RootHelper;
 
+import static android.app.AlarmManager.RTC_WAKEUP;
 import static android.content.Intent.ACTION_BATTERY_CHANGED;
 import static android.media.AudioManager.RINGER_MODE_CHANGED_ACTION;
 import static android.os.BatteryManager.BATTERY_PLUGGED_AC;
 import static android.os.BatteryManager.BATTERY_PLUGGED_USB;
 import static android.os.BatteryManager.BATTERY_PLUGGED_WIRELESS;
+import static android.os.BatteryManager.EXTRA_LEVEL;
 import static android.os.BatteryManager.EXTRA_PLUGGED;
 import static android.os.BatteryManager.EXTRA_TEMPERATURE;
 import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
+import static android.os.Build.VERSION_CODES.M;
 import static com.laudien.p1xelfehler.batterywarner.AppInfoHelper.IS_PRO;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_NOT_ROOTED;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_NO_ALARM_TIME_FOUND;
@@ -56,7 +61,7 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
     private BroadcastReceiver batteryChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(final Context context, Intent intent) {
-            int batteryLevel = intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+            int batteryLevel = intent.getIntExtra(EXTRA_LEVEL, -1);
             int temperature = intent.getIntExtra(EXTRA_TEMPERATURE, 0);
             long timeNow = System.currentTimeMillis();
             chargingType = intent.getIntExtra(EXTRA_PLUGGED, -1);
@@ -101,25 +106,22 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
                             pauseCharging();
                         }
                         if (smartChargingEnabled) {
-                            // stop charging and this service if the smart charging limit is reached
-                            if (batteryLevel >= smartChargingLimit) {
-                                stopCharging();
-                                stopSelf();
-                                return;
+                            AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+                            PendingIntent pendingIntent = PendingIntent.getService(context, 0, new Intent(context, ResumeChargingService.class), 0);
+                            if (SDK_INT >= M) {
+                                alarmManager.setAndAllowWhileIdle(RTC_WAKEUP, smartChargingResumeTime, pendingIntent);
+                            } else if (SDK_INT >= KITKAT) {
+                                alarmManager.setExact(RTC_WAKEUP, smartChargingResumeTime, pendingIntent);
+                            } else {
+                                alarmManager.set(RTC_WAKEUP, smartChargingResumeTime, pendingIntent);
                             }
+                            unregisterReceiver(this);
                         } else { // stop service if smart charging is disabled
                             stopSelf();
                             return;
                         }
                     }
                 }
-            }
-            // check if resume time is reached and charging is paused and not resumed yet
-            if (!isCharging && stopChargingEnabled && smartChargingEnabled && isChargingPaused && !isChargingResumed && timeNow >= smartChargingResumeTime) {
-                if (isGraphEnabled && IS_PRO) { // add a graph point for optics/correctness
-                    graphDbHelper.addValue(timeNow, batteryLevel, temperature);
-                }
-                resumeCharging();
             }
             // stop service if everything is turned off or the device is fully charged
             if ((!isCharging && !(smartChargingEnabled && isChargingPaused)) || batteryLevel == 100
@@ -397,6 +399,51 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
             return resumeTime; // return the resume time
         } else { // smart charging is disabled
             return 0;
+        }
+    }
+
+    private class ResumeChargingService extends Service {
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            batteryChangedReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    int batteryLevel = intent.getIntExtra(EXTRA_LEVEL, -1);
+                    int temperature = intent.getIntExtra(EXTRA_TEMPERATURE, 0);
+                    long timeNow = System.currentTimeMillis();
+                    if (!isChargingResumed) { // the first value
+                        resumeCharging();
+                        lastBatteryLevel = batteryLevel;
+                        graphDbHelper.addValue(timeNow, batteryLevel, temperature);
+                    } else {
+                        if (batteryLevel != lastBatteryLevel) {
+                            if (isGraphEnabled && IS_PRO) {
+                                lastBatteryLevel = batteryLevel;
+                                graphDbHelper.addValue(timeNow, batteryLevel, temperature);
+                            }
+                            if (batteryLevel >= smartChargingLimit) {
+                                stopCharging();
+                                stopSelf();
+                            }
+                        }
+                    }
+                }
+            };
+            registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
+            return super.onStartCommand(intent, flags, startId);
+        }
+
+        @Override
+        public void onDestroy() {
+            unregisterReceiver(batteryChangedReceiver);
+            ChargingService.this.stopSelf();
+            super.onDestroy();
+        }
+
+        @Nullable
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
         }
     }
 }
