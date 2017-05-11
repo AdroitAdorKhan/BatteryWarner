@@ -45,11 +45,11 @@ import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID
  * If the pro version is used, it saves the graph using the static method in the GraphFragment.
  */
 public class ChargingService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener {
-
+    private SharedPreferences temporaryPrefs;
     private final String TAG = getClass().getSimpleName();
     private boolean warningHighEnabled, isGraphEnabled, acEnabled, usbEnabled, wirelessEnabled,
             stopChargingEnabled, smartChargingEnabled, smartChargingUseClock, graphChanged, usbChargingDisabled,
-            isChargingPaused = false, isChargingResumed = false, alreadyNotified = false;
+            isChargingPaused, isChargingResumed, alreadyNotified = false;
     private int warningHigh, smartChargingLimit, smartChargingMinutes, chargingType, lastBatteryLevel = -1;
     private long smartChargingResumeTime, smartChargingTime;
     private GraphDbHelper graphDbHelper = GraphDbHelper.getInstance(this);
@@ -167,6 +167,7 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        temporaryPrefs = getSharedPreferences(getString(R.string.prefs_temporary), MODE_PRIVATE);
         // read the variables from the shared preferences
         warningHighEnabled = sharedPreferences.getBoolean(getString(R.string.pref_warning_high_enabled), getResources().getBoolean(R.bool.pref_warning_high_enabled_default));
         warningHigh = sharedPreferences.getInt(getString(R.string.pref_warning_high), getResources().getInteger(R.integer.pref_warning_high_default));
@@ -185,20 +186,8 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
         if (smartChargingLimit < warningHigh) {
             smartChargingLimit = warningHigh;
         }
-        Log.d(TAG, "warningHighEnabled = " + warningHighEnabled);
-        Log.d(TAG, "warningHigh = " + warningHigh);
-        Log.d(TAG, "isGraphEnabled = " + isGraphEnabled);
-        Log.d(TAG, "stopChargingEnabled = " + stopChargingEnabled);
-        Log.d(TAG, "smartChargingEnabled = " + smartChargingEnabled);
-        Log.d(TAG, "smartChargingLimit = " + smartChargingLimit);
-        Log.d(TAG, "acEnabled = " + acEnabled);
-        Log.d(TAG, "usbEnabled = " + usbEnabled);
-        Log.d(TAG, "wirelessEnabled = " + wirelessEnabled);
-        Log.d(TAG, "usbChargingDisabled = " + usbChargingDisabled);
-        Log.d(TAG, "smartChargingUseClock = " + smartChargingUseClock);
-        Log.d(TAG, "smartChargingMinutes = " + smartChargingMinutes);
-        Log.d(TAG, "smartChargingTime = " + smartChargingTime);
-        Log.d(TAG, "smartChargingResumeTime = " + smartChargingResumeTime);
+        isChargingPaused = temporaryPrefs.getBoolean(getString(R.string.pref_is_charging_paused), false);
+        isChargingResumed = false;
         // register all receivers
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
         registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
@@ -239,6 +228,12 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
             SharedPreferences temporaryPreferences = getSharedPreferences(getString(R.string.prefs_temporary), MODE_PRIVATE);
             temporaryPreferences.edit()
                     .putInt(getString(R.string.pref_last_chargingType), chargingType)
+                    .apply();
+        }
+        // save state of isChargingPaused
+        if (isChargingPaused && !isChargingResumed) {
+            temporaryPrefs.edit()
+                    .putBoolean(getString(R.string.pref_is_charging_paused), isChargingPaused)
                     .apply();
         }
         Log.d(TAG, "Service destroyed!");
@@ -327,6 +322,10 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
     private void resumeCharging() {
         Log.d(TAG, "Resuming charging...");
         isChargingResumed = true;
+        // reset isChargingPaused in preferences because it is not paused anymore
+        temporaryPrefs.edit()
+                .putBoolean(getString(R.string.pref_is_charging_paused), false)
+                .apply();
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
