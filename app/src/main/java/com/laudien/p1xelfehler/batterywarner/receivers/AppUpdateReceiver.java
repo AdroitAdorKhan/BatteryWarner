@@ -69,7 +69,7 @@ public class AppUpdateReceiver extends BroadcastReceiver {
                     calendar = Calendar.getInstance();
                     calendar.set(HOUR_OF_DAY, hours);
                     calendar.set(MINUTE, minutes);
-                    Log.d(getClass().getSimpleName(), date.toString());
+                    Log.i(getClass().getSimpleName(), date.toString());
                     sharedPreferences.edit().remove(context.getString(R.string.pref_smart_charging_time))
                             .putLong(context.getString(R.string.pref_smart_charging_time), calendar.getTimeInMillis())
                             .apply();

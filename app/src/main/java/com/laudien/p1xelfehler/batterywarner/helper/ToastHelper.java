@@ -10,7 +10,8 @@ public class ToastHelper {
         if (toast != null) {
             toast.cancel();
         }
-        toast = Toast.makeText(context, stringResource, duration);
+        //toast = Toast.makeText(context, stringResource, duration);
+        toast = Toast.makeText(context, "Huawei is not supported!", duration);
         toast.show();
     }
 
@@ -18,7 +19,8 @@ public class ToastHelper {
         if (toast != null) {
             toast.cancel();
         }
-        toast = Toast.makeText(context, message, duration);
+        //toast = Toast.makeText(context, message, duration);
+        toast = Toast.makeText(context, "Huawei is not supported!", duration);
         toast.show();
     }
 }

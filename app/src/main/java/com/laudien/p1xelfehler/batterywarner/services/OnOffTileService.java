@@ -34,7 +34,7 @@ public class OnOffTileService extends TileService implements SharedPreferences.O
     @Override
     public void onStartListening() {
         super.onStartListening();
-        Log.d(TAG, "start listening!");
+        Log.i(TAG, "start listening!");
         tile = getQsTile();
         if (IS_PRO) { // pro version
             sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -61,7 +61,7 @@ public class OnOffTileService extends TileService implements SharedPreferences.O
     @Override
     public void onStopListening() {
         super.onStopListening();
-        Log.d(TAG, "stop listening!");
+        Log.i(TAG, "stop listening!");
         if (sharedPreferences != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
         }
@@ -70,7 +70,7 @@ public class OnOffTileService extends TileService implements SharedPreferences.O
     @Override
     public void onClick() {
         super.onClick();
-        Log.d(TAG, "Tile clicked!");
+        Log.i(TAG, "Tile clicked!");
         if (!IS_PRO) { // not pro
             ToastHelper.sendToast(getApplicationContext(), R.string.toast_not_pro, LENGTH_SHORT);
             return;
@@ -88,14 +88,14 @@ public class OnOffTileService extends TileService implements SharedPreferences.O
         boolean isCharging = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, -1) != 0;
 
         if (isActive) { // disable battery warnings
-            Log.d(TAG, "Disabling battery warnings...");
+            Log.i(TAG, "Disabling battery warnings...");
             tile.setState(STATE_INACTIVE);
             if (!isCharging) { // discharging
                 DischargingAlarmReceiver.cancelDischargingAlarm(this);
             }
             ToastHelper.sendToast(getApplicationContext(), R.string.toast_successfully_disabled, LENGTH_SHORT);
         } else { // enable battery warnings
-            Log.d(TAG, "Enabling battery warnings...");
+            Log.i(TAG, "Enabling battery warnings...");
             SharedPreferences temporaryPrefs = getSharedPreferences(getString(R.string.prefs_temporary), MODE_PRIVATE);
             temporaryPrefs.edit().putBoolean(getString(R.string.pref_already_notified), false).apply();
             if (isCharging) {

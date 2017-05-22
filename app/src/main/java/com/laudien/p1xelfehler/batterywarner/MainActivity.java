@@ -18,6 +18,7 @@ import com.laudien.p1xelfehler.batterywarner.fragments.GraphFragment;
 import com.laudien.p1xelfehler.batterywarner.fragments.MainPageFragment;
 import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 
+import static android.widget.Toast.LENGTH_LONG;
 import static android.widget.Toast.LENGTH_SHORT;
 
 /**
@@ -48,6 +49,7 @@ public class MainActivity extends BaseActivity {
                 tabLayout.setupWithViewPager(viewPager);
             }
         }
+        //ToastHelper.sendToast(this, "Huawei is not supported!", LENGTH_LONG);
     }
 
     @Override

@@ -15,6 +15,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.laudien.p1xelfehler.batterywarner.MainActivity;
@@ -347,6 +348,7 @@ public final class NotificationHelper {
     private static void showBatteryInfoNotification(Context context, SharedPreferences sharedPreferences) {
         BatteryData batteryData = BatteryHelper.getBatteryData();
         if (batteryData != null) {
+            Log.i("NotificationHelper", batteryData.toString());
             String[] data = batteryData.getEnabledOnly(context, sharedPreferences);
             // prepare content view (with theme)
             int layout;
@@ -364,7 +366,7 @@ public final class NotificationHelper {
                     .setOngoing(true)
                     .setContentIntent(getDefaultClickIntent(context))
                     .setPriority(Notification.PRIORITY_LOW)
-                    .setContentTitle(context.getString(R.string.title_info_notification))
+                    .setContentTitle("Spaaaaace!!")
                     .setSmallIcon(R.drawable.ic_launcher);
             // load data in notification
             String message = splitMessageData(data, contentView);

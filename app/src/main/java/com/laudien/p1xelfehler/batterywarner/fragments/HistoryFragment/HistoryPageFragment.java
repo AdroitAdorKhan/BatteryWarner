@@ -39,7 +39,7 @@ public class HistoryPageFragment extends BasicGraphFragment {
                 }
             }
         }
-        Log.d(TAG, "fragment created with file: " + file.getPath());
+        Log.i(TAG, "fragment created with file: " + file.getPath());
         View view = super.onCreateView(inflater, container, savedInstanceState);
         textView_title.setVisibility(View.GONE);
         if (savedInstanceState != null) {

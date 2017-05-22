@@ -68,7 +68,7 @@ public class DischargingAlarmReceiver extends BroadcastReceiver {
             warningLow = sharedPreferences.getInt(context.getString(R.string.pref_warning_low), context.getResources().getInteger(R.integer.pref_warning_low_default));
             if (batteryLevel <= warningLow) { // warning low
                 NotificationHelper.showNotification(context, NotificationHelper.ID_WARNING_LOW);
-                Log.d(TAG, "Discharging notification triggered!");
+                Log.i(TAG, "Discharging notification triggered!");
             } else {
                 setDischargingAlarm(context); // set new alarm
             }
@@ -116,7 +116,7 @@ public class DischargingAlarmReceiver extends BroadcastReceiver {
                     .edit()
                     .putLong(context.getString(R.string.pref_intent_time), triggerTime)
                     .apply();
-            Log.d(TAG, "Discharging alarm set to: " + triggerTime);
+            Log.i(TAG, "Discharging alarm set to: " + triggerTime);
         }
     }
 }

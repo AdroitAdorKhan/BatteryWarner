@@ -80,7 +80,7 @@ public class GraphFragment extends BasicGraphFragment implements GraphDbHelper.D
      * @return Returns true if the saving process was successful, false if not.
      */
     public static boolean saveGraph(Context context) {
-        Log.d("GraphSaver", "Saving graph...");
+        Log.i("GraphSaver", "Saving graph...");
         // throw exception if in main thread
         if (Looper.myLooper() == Looper.getMainLooper()) {
             throw new RuntimeException("Do not save the graph in main thread!");
@@ -135,7 +135,7 @@ public class GraphFragment extends BasicGraphFragment implements GraphDbHelper.D
             e.printStackTrace();
             return false;
         }
-        Log.d("GraphSaver", "Graph saved!");
+        Log.i("GraphSaver", "Graph saved!");
         return true;
     }
 

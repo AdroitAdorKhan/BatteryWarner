@@ -58,7 +58,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Starting service...");
+        Log.i(TAG, "Starting service...");
         if (batteryChangedReceiver == null) {
             sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
             boolean isEnabled = sharedPreferences.getBoolean(getString(R.string.pref_is_enabled), getResources().getBoolean(R.bool.pref_is_enabled_default));
@@ -106,7 +106,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
                 screenOnReceiver = new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context context, Intent intent) {
-                        Log.d(TAG, "screen on received!");
+                        Log.i(TAG, "screen on received!");
                         isScreenOn = true;
                         if (dischargingServiceEnabled) {
                             long timeNow = Calendar.getInstance().getTimeInMillis();
@@ -126,7 +126,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
                 screenOffReceiver = new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context context, Intent intent) {
-                        Log.d(TAG, "screen off received!");
+                        Log.i(TAG, "screen off received!");
                         isScreenOn = false;
                         if (dischargingServiceEnabled) {
                             long timeNow = Calendar.getInstance().getTimeInMillis();
@@ -160,9 +160,9 @@ public class DischargingService extends Service implements SharedPreferences.OnS
             } else {
                 stopSelf();
             }
-            Log.d(TAG, "Service started!");
+            Log.i(TAG, "Service started!");
         } else {
-            Log.d(TAG, "The service is already running!");
+            Log.i(TAG, "The service is already running!");
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -170,7 +170,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "Destroying service...");
+        Log.i(TAG, "Destroying service...");
         try {
             unregisterReceiver(screenOnReceiver);
             unregisterReceiver(screenOffReceiver);
@@ -188,7 +188,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
         if (infoNotificationEnabled) {
             NotificationHelper.cancelNotification(this, ID_BATTERY_INFO);
         }
-        Log.d(TAG, "Service destroyed!");
+        Log.i(TAG, "Service destroyed!");
     }
 
     @Override

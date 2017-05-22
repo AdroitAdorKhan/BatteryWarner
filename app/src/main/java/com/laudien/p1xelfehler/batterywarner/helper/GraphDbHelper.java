@@ -153,7 +153,7 @@ public class GraphDbHelper extends SQLiteOpenHelper {
         } else {
             dbChanged = true;
         }
-        Log.d(TAG, "The database has been cleared!");
+        Log.i(TAG, "The database has been cleared!");
     }
 
     /**
@@ -164,7 +164,7 @@ public class GraphDbHelper extends SQLiteOpenHelper {
      * @param temperature The battery temperature.
      */
     public void addValue(long time, int percentage, int temperature) {
-        Log.d(TAG, "value added: " + time + " ms, " + percentage + "%, " + temperature + "/10°C");
+        Log.i(TAG, "value added: " + time + " ms, " + percentage + "%, " + temperature + "/10°C");
         ContentValues contentValues = new ContentValues();
         contentValues.put(TABLE_COLUMN_TIME, time);
         contentValues.put(TABLE_COLUMN_PERCENTAGE, percentage);

@@ -377,7 +377,7 @@ public class BatteryHelper {
             if (!listeners.contains(listener)) {
                 listeners.add(listener);
             } else {
-                Log.d(getClass().getSimpleName(), "The given listener is already in the list!");
+                Log.i(getClass().getSimpleName(), "The given listener is already in the list!");
             }
         }
 
@@ -385,7 +385,7 @@ public class BatteryHelper {
             if (listeners != null && listener != null && listeners.contains(listener)) {
                 listeners.remove(listener);
             } else {
-                Log.d(getClass().getSimpleName(), "unregisterOnBatteryValueChangedListener called without any registered listener!");
+                Log.i(getClass().getSimpleName(), "unregisterOnBatteryValueChangedListener called without any registered listener!");
             }
         }
 
@@ -398,7 +398,7 @@ public class BatteryHelper {
                         listener.onBatteryValueChanged(index);
                     } else { // remove listener if it is null
                         listeners.remove(i);
-                        Log.d(getClass().getSimpleName(), "Forgot to unregister a listener! Listener was removed from the list!");
+                        Log.i(getClass().getSimpleName(), "Forgot to unregister a listener! Listener was removed from the list!");
                     }
                 }
             }

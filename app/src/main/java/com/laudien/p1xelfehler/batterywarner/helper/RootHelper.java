@@ -46,13 +46,13 @@ public final class RootHelper {
      * @throws NotRootedException thrown if the app has no root permissions.
      */
     public static void enableCharging() throws NotRootedException, NoBatteryFileFoundException {
-        Log.d(TAG, "Enabling charging...");
+        Log.i(TAG, "Enabling charging...");
         if (!isRootAvailable()) {
             throw new NotRootedException();
         }
         ToggleChargingFile toggleChargingFile = getAvailableFile();
         Shell.SU.run(String.format("echo %s > %s", toggleChargingFile.chargeOn, toggleChargingFile.path));
-        Log.d(TAG, "Charging was enabled!");
+        Log.i(TAG, "Charging was enabled!");
     }
 
     /**
@@ -61,13 +61,13 @@ public final class RootHelper {
      * @throws NotRootedException thrown if the app has no root permissions.
      */
     public static void disableCharging() throws NotRootedException, NoBatteryFileFoundException {
-        Log.d(TAG, "Disabling charging...");
+        Log.i(TAG, "Disabling charging...");
         if (!isRootAvailable()) {
             throw new NotRootedException();
         }
         ToggleChargingFile toggleChargingFile = getAvailableFile();
         Shell.SU.run(String.format("echo %s > %s", toggleChargingFile.chargeOff, toggleChargingFile.path));
-        Log.d(TAG, "Charging was disabled!");
+        Log.i(TAG, "Charging was disabled!");
     }
 
     /**
@@ -145,11 +145,11 @@ public final class RootHelper {
         };
         for (ToggleChargingFile file : files) {
             if (new File(file.path).exists()) {
-                Log.d("RootHelper", "File found: " + file.path);
+                Log.i("RootHelper", "File found: " + file.path);
                 return file;
             }
         }
-        Log.d("RootHelper", "No file found!");
+        Log.i("RootHelper", "No file found!");
         throw new NoBatteryFileFoundException();
     }
 

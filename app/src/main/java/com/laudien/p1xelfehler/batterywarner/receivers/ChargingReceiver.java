@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.laudien.p1xelfehler.batterywarner.R;
 import com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper;
@@ -31,6 +32,7 @@ public class ChargingReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final Context context, Intent intent) {
+        Log.i(getClass().getSimpleName(), "Broadcast received!");
         if (intent.getAction().equals("android.intent.action.ACTION_POWER_CONNECTED")) { // correct intent action
             final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
             boolean firstStart = sharedPreferences.getBoolean(context.getString(R.string.pref_first_start), context.getResources().getBoolean(R.bool.pref_first_start_default));
