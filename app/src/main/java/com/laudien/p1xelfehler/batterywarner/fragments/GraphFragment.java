@@ -311,7 +311,7 @@ public class GraphFragment extends BasicGraphFragment implements GraphDbHelper.D
                     boolean isDatabaseEmpty = series == null;
                     String timeString;
                     if (isDatabaseEmpty) {
-                        timeString = InfoObject.getZeroTimeString(getContext());
+                        timeString = InfoObject.Companion.getZeroTimeString(getContext());
                     } else {
                         timeString = infoObject.getTimeString(getContext());
                     }
