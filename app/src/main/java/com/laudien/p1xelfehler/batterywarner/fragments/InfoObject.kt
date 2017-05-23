@@ -5,7 +5,6 @@ import android.content.Context
 import android.preference.PreferenceManager
 import android.support.v7.app.AlertDialog
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.TextView
 import com.laudien.p1xelfehler.batterywarner.R
 import java.text.DateFormat
@@ -62,13 +61,12 @@ internal class InfoObject(startTime: Long, endTime: Long, timeInMinutes: Double,
 
     @SuppressLint("SetTextI18n")
             /**
-     * Shows the info dialog with all the information of the charging curve to the user.
+             * Shows the info dialog with all the information of the charging curve to the user.
 
-     * @param context An instance of the Context class.
-     */
+             * @param context An instance of the Context class.
+             */
     fun showDialog(context: Context) {
-        val inflater = LayoutInflater.from(context)
-        val view = inflater.inflate(R.layout.dialog_graph_info, null)
+        val view = LayoutInflater.from(context).inflate(R.layout.dialog_graph_info, null)
         val dateFormat = DateFormat.getDateTimeInstance()
         // charging time
         val textView_totalTime = view.findViewById(R.id.textView_totalTime) as TextView
@@ -78,48 +76,28 @@ internal class InfoObject(startTime: Long, endTime: Long, timeInMinutes: Double,
         textView_startTime.text = "${context.getString(R.string.info_startTime)}: ${dateFormat.format(startTime)}"
         // end time
         val textView_endTime = view.findViewById(R.id.textView_endTime) as TextView
-        textView_endTime.text = String.format(
-                Locale.getDefault(),
-                "%s: %s",
-                context.getString(R.string.info_endTime),
-                dateFormat.format(endTime)
-        )
+        textView_endTime.text = "${context.getString(R.string.info_endTime)}: ${dateFormat.format(endTime)}"
         // charging speed
         val textView_speed = view.findViewById(R.id.textView_speed) as TextView
         val speed = percentCharged * 60 / timeInMinutes
-        if (java.lang.Double.isNaN(speed)) {
-            textView_speed.text = String.format(
-                    Locale.getDefault(),
-                    "%s: %s %%/h",
-                    context.getString(R.string.info_charging_speed),
-                    "N/A")
-        } else {
-            textView_speed.text = String.format(
-                    Locale.getDefault(),
-                    "%s: %.2f %%/h",
-                    context.getString(R.string.info_charging_speed),
-                    speed)
-        }
+        textView_speed.text = "${context.getString(R.string.info_charging_speed)}: " +
+                if (speed == Double.NaN) {
+                    "N/A %/h"
+                } else {
+                    "${speed.format(2)} %/h"
+                }
         // max temperature
         val textView_maxTemp = view.findViewById(R.id.textView_maxTemp) as TextView
-        textView_maxTemp.text = String.format(
-                Locale.getDefault(),
-                "%s: %.1f°C",
-                context.getString(R.string.info_max_temp),
-                maxTemp)
+        textView_maxTemp.text = "${context.getString(R.string.info_max_temp)}: ${maxTemp.format(1)}°C"
         // min temperature
         val textView_minTemp = view.findViewById(R.id.textView_minTemp) as TextView
-        textView_minTemp.text = String.format(
-                Locale.getDefault(),
-                "%s: %.1f°C",
-                context.getString(R.string.info_min_temp),
-                minTemp)
+        textView_minTemp.text = "${context.getString(R.string.info_min_temp)}: ${minTemp.format(1)}°C"
         // build dialog
         AlertDialog.Builder(context)
-                .setTitle(context.getString(R.string.dialog_title_graph_info))
+                .setTitle(R.string.dialog_title_graph_info)
                 .setView(view)
                 .setCancelable(true)
-                .setPositiveButton(context.getString(R.string.dialog_button_close), null)
+                .setPositiveButton(R.string.dialog_button_close, null)
                 .setIcon(R.drawable.ic_launcher)
                 .create()
                 .show()
@@ -159,37 +137,18 @@ internal class InfoObject(startTime: Long, endTime: Long, timeInMinutes: Double,
         }
     }
 
-    companion object {
+    fun Double.format(digits: Int) = String.format(Locale.getDefault(), "%.${digits}f", this)
 
+    companion object {
         private fun getTimeFormats(context: Context): Array<String> {
             val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
             val timeFormat = sharedPreferences.getString(context.getString(R.string.pref_time_format), context.getString(R.string.pref_time_format_default))
-            return arrayOf(
-                    when (timeFormat) {
-                        "0" -> "%d h %.0f min"
-                        "1" -> "%d h %.1f min"
-                        "2" -> "%d h %.0f min %.0f s"
-                        else -> ""
-                    },
-                    when (timeFormat) {
-                        "0" -> "%.0f min"
-                        "1" -> "%.1f min"
-                        "2" -> "%.0f min %.0f s"
-                        else -> ""
-                    },
-                    when (timeFormat) {
-                        "0" -> "%.0f min"
-                        "1" -> "%.1f min"
-                        "2" -> "%.0f s"
-                        else -> ""
-                    },
-                    when (timeFormat) {
-                        "0" -> "false"
-                        "1" -> "false"
-                        "2" -> "true"
-                        else -> ""
-                    }
-            )
+            return when (timeFormat) {
+                "0" -> arrayOf("%d h %.0f min", "%.0f min", "%.0f min", "false")
+                "1" -> arrayOf("%d h %.1f min", "%.1f min", "%.1f min", "false")
+                "2" -> arrayOf("%d h %.0f min %.0f s", "%.0f min %.0f s", "%.0f s", "true")
+                else -> arrayOf()
+            }
         }
 
         /**
