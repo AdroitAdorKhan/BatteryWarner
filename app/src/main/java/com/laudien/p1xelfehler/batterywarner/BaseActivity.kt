@@ -41,7 +41,9 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        if (parentActivityIntent != null) {
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        }
         return super.onCreateOptionsMenu(menu)
     }
 }
