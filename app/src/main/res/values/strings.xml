@@ -223,4 +223,5 @@
     <string name="charging">Charging</string>
     <string name="smart_charging_explanation">That\'s for the people who want to charge full over night without damaging the battery with letting it on 100% too long. It will be charged to the charging limit that is set in the other settings menu. Then the charging will be paused and X minutes before the time you set here charging will be resumed. After reaching the limit in this menu, the charging will be stopped again.</string>
     <string name="notification_message_no_items_enabled">No items enabled!</string>
+    <string name="app_on_sale">The pro version is on sale now! If you want it, get it now!</string>
 </resources>

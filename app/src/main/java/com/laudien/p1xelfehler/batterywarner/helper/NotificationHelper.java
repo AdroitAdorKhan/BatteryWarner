@@ -129,6 +129,19 @@ public final class NotificationHelper {
         }
     }
 
+    public static Notification.Builder createNotification(Context context, int messageRes) {
+        String message = context.getString(messageRes);
+        return new Notification.Builder(context)
+                .setSmallIcon(getSmallIconRes())
+                .setVibrate(VIBRATE_PATTERN)
+                .setPriority(PRIORITY_LOW)
+                .setContentTitle(context.getString(R.string.app_name))
+                .setContentText(message)
+                .setStyle(getBigTextStyle(message))
+                .setContentIntent(getDefaultClickIntent(context))
+                .setAutoCancel(true);
+    }
+
     /**
      * Cancels the notification with the given notification id.
      *
@@ -166,7 +179,7 @@ public final class NotificationHelper {
                     context.getSystemService(NOTIFICATION_SERVICE);
             notificationManager.notify(ID_WARNING_HIGH, builder.build());
             // reset the android internal battery stats
-            if (resetBatteryStats){
+            if (resetBatteryStats) {
                 AsyncTask.execute(new Runnable() {
                     @Override
                     public void run() {

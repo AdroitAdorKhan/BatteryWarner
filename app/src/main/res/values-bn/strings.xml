@@ -166,4 +166,5 @@
     <string name="info_startTime">Start</string>
     <string name="title_reset_battery_stats">Reset battery stats</string>
     <string name="summary_reset_battery_stats">Reset the battery stats after the battery high warning was triggered.</string>
+    <string name="app_on_sale">The pro version is on sale now! If you want it, get it now!</string>
 </resources>

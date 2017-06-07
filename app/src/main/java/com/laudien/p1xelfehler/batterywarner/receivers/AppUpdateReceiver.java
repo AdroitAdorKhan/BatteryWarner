@@ -1,26 +1,37 @@
 package com.laudien.p1xelfehler.batterywarner.receivers;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.laudien.p1xelfehler.batterywarner.AppInfoHelper;
 import com.laudien.p1xelfehler.batterywarner.R;
 import com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper;
 import com.laudien.p1xelfehler.batterywarner.services.ChargingService;
 import com.laudien.p1xelfehler.batterywarner.services.DischargingService;
+import com.laudien.p1xelfehler.batterywarner.services.GoToProService;
 
 import java.text.DateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import static android.content.Context.MODE_PRIVATE;
+import static android.content.Context.NOTIFICATION_SERVICE;
 import static android.content.Intent.ACTION_BATTERY_CHANGED;
 import static android.os.BatteryManager.EXTRA_PLUGGED;
+import static com.laudien.p1xelfehler.batterywarner.AppInfoHelper.IS_PRO;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_GRANT_ROOT;
 import static java.text.DateFormat.SHORT;
 import static java.util.Calendar.HOUR_OF_DAY;
@@ -128,6 +139,33 @@ public class AppUpdateReceiver extends BroadcastReceiver {
             // <= patch old shared preferences
             // show notification if not rooted anymore
             NotificationHelper.showNotification(context, ID_GRANT_ROOT);
+
+            // notify about the discount of the pro version
+            if (!IS_PRO){
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeZone(TimeZone.getTimeZone("MEZ"));
+                calendar.set(Calendar.MONTH, Calendar.JUNE);
+                calendar.set(Calendar.DAY_OF_MONTH, 11);
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                calendar.set(Calendar.MINUTE, 59);
+                if (System.currentTimeMillis() < calendar.getTimeInMillis()) {
+                    PackageManager packageManager = context.getPackageManager();
+                    try {
+                        PackageInfo packageInfo = packageManager.getPackageInfo(AppInfoHelper.PACKAGE_NAME_FREE, 0);
+                        if (packageInfo.versionCode == 157) {
+                            Notification.Builder builder = NotificationHelper.createNotification(context, R.string.app_on_sale);
+                            Intent shopIntent = new Intent(context.getApplicationContext(), GoToProService.class);
+                            PendingIntent pendingIntent = PendingIntent.getService(context, 0, shopIntent, 0);
+                            builder.setContentIntent(pendingIntent)
+                                    .addAction(R.mipmap.ic_launcher, context.getString(R.string.title_get_pro), pendingIntent);
+                            NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+                            notificationManager.notify(0, builder.build());
+                        }
+                    } catch (PackageManager.NameNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }
