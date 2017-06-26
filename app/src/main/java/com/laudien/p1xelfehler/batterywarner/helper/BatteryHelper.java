@@ -9,6 +9,10 @@ import android.util.Log;
 
 import com.laudien.p1xelfehler.batterywarner.R;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -37,8 +41,8 @@ public class BatteryHelper {
     /**
      * Returns existing or creates new BatteryData object with filling in the data and returns it.
      *
-     * @param batteryStatus     Intent that is provided by a receiver with the action ACTION_BATTERY_CHANGED.
-     * @param context           An instance of the Context class.
+     * @param batteryStatus Intent that is provided by a receiver with the action ACTION_BATTERY_CHANGED.
+     * @param context       An instance of the Context class.
      * @return The singleton object of BatteryData.
      */
     public static BatteryData getBatteryData(Intent batteryStatus, Context context) {
@@ -171,8 +175,9 @@ public class BatteryHelper {
 
         /**
          * Updates all the data that is in the batteryStatus intent and the SharedPreferences given.
-         *  @param batteryStatus     Intent that is provided by a receiver with the action ACTION_BATTERY_CHANGED.
-         * @param context           An instance of the Context class.
+         *
+         * @param batteryStatus Intent that is provided by a receiver with the action ACTION_BATTERY_CHANGED.
+         * @param context       An instance of the Context class.
          */
         public void update(Intent batteryStatus, Context context) {
             setTechnology(batteryStatus.getStringExtra(EXTRA_TECHNOLOGY), context);
@@ -182,7 +187,38 @@ public class BatteryHelper {
             setVoltage(BatteryHelper.getVoltage(batteryStatus), context);
             if (SDK_INT >= LOLLIPOP) {
                 BatteryManager batteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
-                setCurrent(batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW), context);
+                long current = batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+                if (current == 0) {
+                    File currentFile = getCurrentFile();
+                    if (currentFile != null) {
+                        try {
+                            Process process = Runtime.getRuntime().exec("cat " + currentFile.getPath());
+                            BufferedReader reader = new BufferedReader(
+                                    new InputStreamReader(process.getInputStream()));
+                            int read;
+                            char[] buffer = new char[8];
+                            StringBuilder output = new StringBuilder();
+                            while ((read = reader.read(buffer)) > 0) {
+                                output.append(buffer, 0, read);
+                            }
+                            reader.close();
+                            // Waits for the command to finish.
+                            process.waitFor();
+                            String outputString = output.toString();
+                            try {
+                                current = Long.getLong(outputString);
+                            } catch (Exception ignored) {
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        Log.d(getClass().getSimpleName(), "No current found!");
+                    }
+                }
+                setCurrent(current, context);
             }
             setScreenOn(BatteryHelper.getScreenOn(context), context);
             setScreenOff(BatteryHelper.getScreenOff(context), context);
@@ -278,6 +314,61 @@ public class BatteryHelper {
 //            }
 //        }
 // --Commented out by Inspection STOP (16.06.2017 14:22)
+
+        private File getCurrentFile() {
+            File f;
+
+            // htc desire hd / desire z / inspire?
+            f = new File("/sys/class/power_supply/battery/batt_current");
+            if (f.exists()) {
+                return f;
+            }
+
+            // nexus one cyanogenmod
+            f = new File("/sys/devices/platform/ds2784-battery/getcurrent");
+            if (f.exists()) {
+                return f;
+            }
+
+            // sony ericsson xperia x1
+            f = new File("/sys/devices/platform/i2c-adapter/i2c-0/0-0036/power_supply/ds2746-battery/current_now");
+            if (f.exists()) {
+                return f;
+            }
+
+            // xdandroid
+            f = new File("/sys/devices/platform/i2c-adapter/i2c-0/0-0036/power_supply/battery/current_now");
+            if (f.exists()) {
+                return f;
+            }
+
+            // some htc devices
+            f = new File("/sys/class/power_supply/battery/batt_current");
+            if (f.exists())
+                return f;
+
+            // nexus one
+            f = new File("/sys/class/power_supply/battery/current_now");
+            if (f.exists())
+                return f;
+
+            // samsung galaxy vibrant
+            f = new File("/sys/class/power_supply/battery/batt_chg_current");
+            if (f.exists())
+                return f;
+
+            // sony ericsson x10
+            f = new File("/sys/class/power_supply/battery/charger_current");
+            if (f.exists())
+                return f;
+
+            // Nook Color
+            f = new File("/sys/class/power_supply/max17042-0/current_now");
+            if (f.exists())
+                return f;
+
+            return null;
+        }
 
         private void setTechnology(String technology, Context context) {
             if (this.technology == null || !this.technology.equals(technology)) {
