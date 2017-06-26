@@ -349,7 +349,7 @@ public class DischargingService extends Service implements SharedPreferences.OnS
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            NotificationHelper.cancelNotification(getApplicationContext(), ID_WARNING_HIGH, ID_SILENT_MODE);
+                            NotificationHelper.cancelNotification(getApplicationContext(), ID_WARNING_HIGH);
                         }
                     }, stopChargingEnabled ? 5000 : 0);
                     break;

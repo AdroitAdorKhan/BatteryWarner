@@ -64,7 +64,7 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
     private BatteryChangedReceiver batteryChangedReceiver;
     private boolean warningHighEnabled, isGraphEnabled, acEnabled, usbEnabled, wirelessEnabled,
             stopChargingEnabled, smartChargingEnabled, smartChargingUseClock, graphChanged, usbChargingDisabled,
-            isChargingPaused = false, isChargingResumed = false, alreadyNotified = false;
+            isChargingPaused = false, isChargingResumed = false, alreadyNotified = false, serviceUseless = false;
     private int warningHigh, smartChargingLimit, smartChargingMinutes, chargingType, lastBatteryLevel = -1;
     private long smartChargingResumeTime, smartChargingTime, timeResumed;
 
@@ -93,48 +93,49 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "Creating service...");
+        NotificationHelper.cancelNotification(this, ID_WARNING_LOW);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        // read the variables from the shared preferences
+        warningHighEnabled = sharedPreferences.getBoolean(getString(R.string.pref_warning_high_enabled), getResources().getBoolean(R.bool.pref_warning_high_enabled_default));
+        isGraphEnabled = IS_PRO && sharedPreferences.getBoolean(getString(R.string.pref_graph_enabled), getResources().getBoolean(R.bool.pref_graph_enabled_default));
+        usbChargingDisabled = sharedPreferences.getBoolean(getString(R.string.pref_usb_charging_disabled), getResources().getBoolean(R.bool.pref_usb_charging_disabled_default));
+        if (usbChargingDisabled || warningHighEnabled || isGraphEnabled) {
+            warningHigh = sharedPreferences.getInt(getString(R.string.pref_warning_high), getResources().getInteger(R.integer.pref_warning_high_default));
+            stopChargingEnabled = sharedPreferences.getBoolean(getString(R.string.pref_stop_charging), getResources().getBoolean(R.bool.pref_stop_charging_default));
+            smartChargingEnabled = sharedPreferences.getBoolean(getString(R.string.pref_smart_charging_enabled), getResources().getBoolean(R.bool.pref_smart_charging_enabled_default));
+            smartChargingLimit = sharedPreferences.getInt(getString(R.string.pref_smart_charging_limit), getResources().getInteger(R.integer.pref_smart_charging_limit_default));
+            acEnabled = sharedPreferences.getBoolean(getString(R.string.pref_ac_enabled), getResources().getBoolean(R.bool.pref_ac_enabled_default));
+            usbEnabled = sharedPreferences.getBoolean(getString(R.string.pref_usb_enabled), getResources().getBoolean(R.bool.pref_usb_enabled_default));
+            wirelessEnabled = sharedPreferences.getBoolean(getString(R.string.pref_wireless_enabled), getResources().getBoolean(R.bool.pref_wireless_enabled_default));
+            smartChargingUseClock = sharedPreferences.getBoolean(getString(R.string.pref_smart_charging_use_alarm_clock_time), getResources().getBoolean(R.bool.pref_smart_charging_use_alarm_clock_time_default));
+            smartChargingMinutes = sharedPreferences.getInt(getString(R.string.pref_smart_charging_time_before), getResources().getInteger(R.integer.pref_smart_charging_time_before_default));
+            smartChargingTime = sharedPreferences.getLong(getString(R.string.pref_smart_charging_time), -1);
+            smartChargingResumeTime = getSmartChargingResumeTime(sharedPreferences);
+            if (smartChargingLimit < warningHigh) {
+                smartChargingLimit = warningHigh;
+            }
+            // register all receivers
+            sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+            batteryChangedReceiver = new BatteryChangedReceiver();
+            Intent batteryStatus = registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
+            int batteryLevel = batteryStatus != null ? batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) : -1;
+            if (batteryLevel < warningHigh && shouldShowSilentModeNotification(sharedPreferences)) {
+                NotificationHelper.showNotification(this, ID_SILENT_MODE);
+                ringerModeChangedReceiver = new RingerModeChangedReceiver();
+                registerReceiver(ringerModeChangedReceiver, new IntentFilter(RINGER_MODE_CHANGED_ACTION));
+            }
+            Log.d(TAG, "Service created!");
+        } else {
+            serviceUseless = true;
+        }
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "Starting service...");
-        boolean serviceUseless = false;
-        if (batteryChangedReceiver == null) {
-            NotificationHelper.cancelNotification(this, ID_WARNING_LOW);
-            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            // read the variables from the shared preferences
-            warningHighEnabled = sharedPreferences.getBoolean(getString(R.string.pref_warning_high_enabled), getResources().getBoolean(R.bool.pref_warning_high_enabled_default));
-            isGraphEnabled = IS_PRO && sharedPreferences.getBoolean(getString(R.string.pref_graph_enabled), getResources().getBoolean(R.bool.pref_graph_enabled_default));
-            usbChargingDisabled = sharedPreferences.getBoolean(getString(R.string.pref_usb_charging_disabled), getResources().getBoolean(R.bool.pref_usb_charging_disabled_default));
-            if (usbChargingDisabled || warningHighEnabled || isGraphEnabled) {
-                if (shouldShowSilentModeNotification(sharedPreferences)) {
-                    NotificationHelper.showNotification(this, ID_SILENT_MODE);
-                    ringerModeChangedReceiver = new RingerModeChangedReceiver();
-                    registerReceiver(ringerModeChangedReceiver, new IntentFilter(RINGER_MODE_CHANGED_ACTION));
-                }
-                warningHigh = sharedPreferences.getInt(getString(R.string.pref_warning_high), getResources().getInteger(R.integer.pref_warning_high_default));
-                stopChargingEnabled = sharedPreferences.getBoolean(getString(R.string.pref_stop_charging), getResources().getBoolean(R.bool.pref_stop_charging_default));
-                smartChargingEnabled = sharedPreferences.getBoolean(getString(R.string.pref_smart_charging_enabled), getResources().getBoolean(R.bool.pref_smart_charging_enabled_default));
-                smartChargingLimit = sharedPreferences.getInt(getString(R.string.pref_smart_charging_limit), getResources().getInteger(R.integer.pref_smart_charging_limit_default));
-                acEnabled = sharedPreferences.getBoolean(getString(R.string.pref_ac_enabled), getResources().getBoolean(R.bool.pref_ac_enabled_default));
-                usbEnabled = sharedPreferences.getBoolean(getString(R.string.pref_usb_enabled), getResources().getBoolean(R.bool.pref_usb_enabled_default));
-                wirelessEnabled = sharedPreferences.getBoolean(getString(R.string.pref_wireless_enabled), getResources().getBoolean(R.bool.pref_wireless_enabled_default));
-                smartChargingUseClock = sharedPreferences.getBoolean(getString(R.string.pref_smart_charging_use_alarm_clock_time), getResources().getBoolean(R.bool.pref_smart_charging_use_alarm_clock_time_default));
-                smartChargingMinutes = sharedPreferences.getInt(getString(R.string.pref_smart_charging_time_before), getResources().getInteger(R.integer.pref_smart_charging_time_before_default));
-                smartChargingTime = sharedPreferences.getLong(getString(R.string.pref_smart_charging_time), -1);
-                smartChargingResumeTime = getSmartChargingResumeTime(sharedPreferences);
-                if (smartChargingLimit < warningHigh) {
-                    smartChargingLimit = warningHigh;
-                }
-                // register all receivers
-                sharedPreferences.registerOnSharedPreferenceChangeListener(this);
-                batteryChangedReceiver = new BatteryChangedReceiver();
-                registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
-                Log.d(TAG, "Service started!");
-            } else {
-                Log.d(TAG, "Service is useless, stopping...");
-                serviceUseless = true;
-            }
-        } else {
-            Log.d(TAG, "Service already running!");
-        }
         // build ongoing notification
         Intent clickIntent = new Intent(this, MainActivity.class);
         PendingIntent clickPendingIntent = PendingIntent.getActivity(this, NOTIFICATION_ID, clickIntent, 0);
@@ -149,10 +150,13 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
             builder.setPriority(Notification.PRIORITY_LOW);
         }
         startForeground(NOTIFICATION_ID, builder.build());
-        if (serviceUseless) {
+        if (serviceUseless){
+            Log.d(TAG, "Service is useless, stopping...");
             stopSelf();
+        } else {
+            Log.d(TAG, "Service started!");
         }
-        return START_STICKY;
+        return START_STICKY; // automatically restart service if terminated because of low memory or something
     }
 
     @Nullable
@@ -167,10 +171,12 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         // unregister all receivers
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-        try { // try and catch because receiver might already be unregistered
+        if (batteryChangedReceiver != null) {
             unregisterReceiver(batteryChangedReceiver);
+        }
+        if (ringerModeChangedReceiver != null){
             unregisterReceiver(ringerModeChangedReceiver);
-        } catch (Exception ignored) {
+            NotificationHelper.cancelNotification(this, ID_SILENT_MODE);
         }
         // auto save
         boolean autoSaveEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_autosave), getResources().getBoolean(R.bool.pref_graph_autosave_default));
@@ -473,6 +479,7 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
             if (ringerMode == AudioManager.RINGER_MODE_NORMAL) {
                 NotificationHelper.cancelNotification(context, ID_SILENT_MODE);
                 unregisterReceiver(this);
+                ringerModeChangedReceiver = null;
             }
         }
     }
