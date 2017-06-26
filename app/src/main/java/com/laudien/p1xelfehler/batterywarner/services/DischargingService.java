@@ -55,6 +55,7 @@ import static com.laudien.p1xelfehler.batterywarner.helper.ServiceHelper.ID_CHAR
  */
 public class DischargingService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final int NOTIFICATION_ID = 3001;
+    private final String TAG = getClass().getSimpleName();
     private SharedPreferences sharedPreferences;
     private SharedPreferences temporaryPrefs;
     private BatteryChangedReceiver batteryChangedReceiver;
@@ -79,46 +80,41 @@ public class DischargingService extends Service implements SharedPreferences.OnS
     private long screenOffTime;
     private long lastChangedTime = SystemClock.uptimeMillis();
 
-    @Nullable
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "Creating service...");
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        isScreenOn = SDK_INT >= LOLLIPOP ? powerManager.isInteractive() : powerManager.isScreenOn();
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        temporaryPrefs = getSharedPreferences(getString(R.string.prefs_temporary), MODE_PRIVATE);
+        screenOnTime = temporaryPrefs.getLong(getString(R.string.value_time_screen_on), 0);
+        screenOffTime = temporaryPrefs.getLong(getString(R.string.value_time_screen_off), 0);
+        screenOnDrain = temporaryPrefs.getInt(getString(R.string.value_drain_screen_on), 0);
+        screenOffDrain = temporaryPrefs.getInt(getString(R.string.value_drain_screen_off), 0);
+        measureBatteryDrainEnabled = sharedPreferences.getBoolean(getString(R.string.pref_measure_battery_drain), getResources().getBoolean(R.bool.pref_measure_battery_drain_default));
+        warningLowEnabled = sharedPreferences.getBoolean(getString(R.string.pref_warning_low_enabled), getResources().getBoolean(R.bool.pref_warning_low_enabled_default));
+        warningLow = sharedPreferences.getInt(getString(R.string.pref_warning_low), getResources().getInteger(R.integer.pref_warning_low_default));
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        batteryChangedReceiver = new BatteryChangedReceiver();
+        onBatteryValueChangedListener = new MyOnBatteryValueChangedListener();
+        Intent batteryStatus = registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
+        batteryData = BatteryHelper.getBatteryData(batteryStatus, this);
+        chargingStateChangedReceiver = new ChargingStateChangedReceiver();
+        IntentFilter chargingStateChangedFilter = new IntentFilter(ACTION_POWER_CONNECTED);
+        chargingStateChangedFilter.addAction(ACTION_POWER_DISCONNECTED);
+        registerReceiver(chargingStateChangedReceiver, chargingStateChangedFilter);
+        screenStateChangedReceiver = new ScreenStateChangedReceiver();
+        IntentFilter screenStateFilter = new IntentFilter(ACTION_SCREEN_ON);
+        screenStateFilter.addAction(ACTION_SCREEN_OFF);
+        registerReceiver(screenStateChangedReceiver, screenStateFilter);
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        temporaryPrefs.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(getClass().getSimpleName(), "Starting service...");
-        if (batteryChangedReceiver == null) {
-            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-            isScreenOn = SDK_INT >= LOLLIPOP ? powerManager.isInteractive() : powerManager.isScreenOn();
-            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            temporaryPrefs = getSharedPreferences(getString(R.string.prefs_temporary), MODE_PRIVATE);
-            screenOnTime = temporaryPrefs.getLong(getString(R.string.value_time_screen_on), 0);
-            screenOffTime = temporaryPrefs.getLong(getString(R.string.value_time_screen_off), 0);
-            screenOnDrain = temporaryPrefs.getInt(getString(R.string.value_drain_screen_on), 0);
-            screenOffDrain = temporaryPrefs.getInt(getString(R.string.value_drain_screen_off), 0);
-            measureBatteryDrainEnabled = sharedPreferences.getBoolean(getString(R.string.pref_measure_battery_drain), getResources().getBoolean(R.bool.pref_measure_battery_drain_default));
-            warningLowEnabled = sharedPreferences.getBoolean(getString(R.string.pref_warning_low_enabled), getResources().getBoolean(R.bool.pref_warning_low_enabled_default));
-            warningLow = sharedPreferences.getInt(getString(R.string.pref_warning_low), getResources().getInteger(R.integer.pref_warning_low_default));
-            notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            batteryChangedReceiver = new BatteryChangedReceiver();
-            onBatteryValueChangedListener = new MyOnBatteryValueChangedListener();
-            Intent batteryStatus = registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
-            batteryData = BatteryHelper.getBatteryData(batteryStatus, this);
-            chargingStateChangedReceiver = new ChargingStateChangedReceiver();
-            IntentFilter chargingStateChangedFilter = new IntentFilter(ACTION_POWER_CONNECTED);
-            chargingStateChangedFilter.addAction(ACTION_POWER_DISCONNECTED);
-            registerReceiver(chargingStateChangedReceiver, chargingStateChangedFilter);
-            screenStateChangedReceiver = new ScreenStateChangedReceiver();
-            IntentFilter screenStateFilter = new IntentFilter(ACTION_SCREEN_ON);
-            screenStateFilter.addAction(ACTION_SCREEN_OFF);
-            registerReceiver(screenStateChangedReceiver, screenStateFilter);
-            sharedPreferences.registerOnSharedPreferenceChangeListener(this);
-            temporaryPrefs.registerOnSharedPreferenceChangeListener(this);
-            Log.d(getClass().getSimpleName(), "Service started!");
-        } else {
-            Log.d(getClass().getSimpleName(), "Service already running!");
-        }
+        Log.d(TAG, "Starting service...");
         // bind in info notification (if O or enabled)
         infoNotificationEnabled = SDK_INT >= O || sharedPreferences.getBoolean(getString(R.string.pref_info_notification_enabled), getResources().getBoolean(R.bool.pref_info_notification_enabled_default));
         if (infoNotificationEnabled) {
@@ -130,17 +126,22 @@ public class DischargingService extends Service implements SharedPreferences.OnS
         return START_STICKY;
     }
 
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(getClass().getSimpleName(), "Destroying service...");
+        Log.d(TAG, "Destroying service...");
         unregisterReceiver(batteryChangedReceiver);
         unregisterReceiver(chargingStateChangedReceiver);
         unregisterReceiver(screenStateChangedReceiver);
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
         temporaryPrefs.unregisterOnSharedPreferenceChangeListener(this);
         batteryData.unregisterOnBatteryValueChangedListener(onBatteryValueChangedListener);
-        Log.d(getClass().getSimpleName(), "Service destroyed!");
     }
 
     @Override
