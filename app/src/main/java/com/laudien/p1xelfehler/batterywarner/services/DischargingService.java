@@ -43,7 +43,6 @@ import static com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper.Battery
 import static com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper.BatteryData.INDEX_TECHNOLOGY;
 import static com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper.BatteryData.INDEX_TEMPERATURE;
 import static com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper.BatteryData.INDEX_VOLTAGE;
-import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_SILENT_MODE;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_WARNING_HIGH;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_WARNING_LOW;
 import static com.laudien.p1xelfehler.batterywarner.helper.ServiceHelper.ID_CHARGING;
@@ -224,13 +223,8 @@ public class DischargingService extends Service implements SharedPreferences.OnS
         if (infoNotificationEnabled) {
             String[] data = batteryData.getEnabledOnly(this, sharedPreferences);
             String message = updateNotificationContent(data);
-            if (SDK_INT >= N) {
-                builder.setContentText(message);
-                notificationManager.notify(NOTIFICATION_ID, builder.build());
-            } else {
-                compatBuilder.setContentText(message);
-                notificationManager.notify(NOTIFICATION_ID, compatBuilder.build());
-            }
+            Notification notification = SDK_INT >= N ? builder.setContentText(message).build() : compatBuilder.setContentText(message).build();
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
     }
 
