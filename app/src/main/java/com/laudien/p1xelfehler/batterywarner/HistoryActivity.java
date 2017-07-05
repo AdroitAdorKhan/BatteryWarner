@@ -25,8 +25,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
 import com.laudien.p1xelfehler.batterywarner.fragments.HistoryPageFragment;
-import com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.KeyboardHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 

@@ -26,7 +26,7 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 import com.laudien.p1xelfehler.batterywarner.HistoryActivity;
 import com.laudien.p1xelfehler.batterywarner.R;
-import com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper;
+import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 import com.laudien.p1xelfehler.batterywarner.services.ChargingService;
 
@@ -45,9 +45,9 @@ import static android.support.annotation.Dimension.SP;
 import static android.widget.Toast.LENGTH_SHORT;
 import static com.laudien.p1xelfehler.batterywarner.AppInfoHelper.DATABASE_HISTORY_PATH;
 import static com.laudien.p1xelfehler.batterywarner.AppInfoHelper.IS_PRO;
-import static com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper.DATABASE_NAME;
-import static com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper.TYPE_PERCENTAGE;
-import static com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper.TYPE_TEMPERATURE;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.DATABASE_NAME;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_PERCENTAGE;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_TEMPERATURE;
 import static java.text.DateFormat.SHORT;
 
 /**

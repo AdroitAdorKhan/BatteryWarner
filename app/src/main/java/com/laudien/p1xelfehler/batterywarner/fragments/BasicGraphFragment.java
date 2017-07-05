@@ -23,8 +23,8 @@ import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 import java.util.Locale;
 
 import static android.widget.Toast.LENGTH_SHORT;
-import static com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper.TYPE_PERCENTAGE;
-import static com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper.TYPE_TEMPERATURE;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_PERCENTAGE;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_TEMPERATURE;
 
 /**
  * Super class of all Fragments that are using the charging curve.

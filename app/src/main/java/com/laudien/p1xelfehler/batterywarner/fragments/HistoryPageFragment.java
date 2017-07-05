@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
-import com.laudien.p1xelfehler.batterywarner.helper.GraphDbHelper;
+import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
 
 import java.io.File;
 

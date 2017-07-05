@@ -90,5 +90,9 @@
         <service android:name=".services.GrantRootService" />
         <service android:name=".services.TogglePowerSavingService" />
         <service android:name=".services.EventService" />
+
+        <provider
+            android:name=".data.GraphContentProvider"
+            android:authorities="com.laudien.p1xelfehler.batterywarner.database" />
     </application>
 </manifest>
