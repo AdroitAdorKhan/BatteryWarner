@@ -191,7 +191,9 @@ public class GraphFragment extends BasicGraphFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        if (mContentObserver != null) {
+            getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        }
     }
 
     @Override
