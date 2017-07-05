@@ -286,7 +286,7 @@ public class GraphFragment extends BasicGraphFragment {
      */
     @Override
     void loadGraphs() {
-        if (IS_PRO) {
+        if (IS_PRO && graphEnabled) {
             super.loadGraphs();
         } else {
             setBigText(getString(R.string.toast_not_pro), true);
