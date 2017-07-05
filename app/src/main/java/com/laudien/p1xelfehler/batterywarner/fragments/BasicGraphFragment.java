@@ -39,9 +39,9 @@ import static android.widget.Toast.LENGTH_SHORT;
 public abstract class BasicGraphFragment extends Fragment {
     private static final int MAX_DATA_POINTS = 300;
     /**
-     * An instance of the InfoObject holding information about the charging curve.
+     * An instance of the GraphInfo holding information about the charging curve.
      */
-    InfoObject infoObject;
+    GraphInfo graphInfo;
     /**
      * The GraphView where the graphs are shown
      */
@@ -188,12 +188,12 @@ public abstract class BasicGraphFragment extends Fragment {
     }
 
     /**
-     * Creates a new or updates the existing instance of the InfoObject that is used to store
+     * Creates a new or updates the existing instance of the GraphInfo that is used to store
      * information about the graphs.
      */
     private void createOrUpdateInfoObject() {
-        if (infoObject == null) {
-            infoObject = new InfoObject(
+        if (graphInfo == null) {
+            graphInfo = new GraphInfo(
                     startTime,
                     endTime,
                     graph_percentage.getHighestValueX(),
@@ -202,7 +202,7 @@ public abstract class BasicGraphFragment extends Fragment {
                     graph_percentage.getHighestValueY() - graph_percentage.getLowestValueY()
             );
         } else {
-            infoObject.updateValues(
+            graphInfo.updateValues(
                     startTime,
                     endTime,
                     graph_percentage.getHighestValueX(),
@@ -217,12 +217,12 @@ public abstract class BasicGraphFragment extends Fragment {
      * Sets the text of the textView_chargingTime TextView to the charging time.
      */
     void setTimeText() {
-        if (infoObject != null) {
+        if (graphInfo != null) {
             textView_chargingTime.setText(String.format(
                     Locale.getDefault(),
                     "%s: %s",
                     getString(R.string.info_charging_time),
-                    infoObject.getTimeString(getContext())
+                    graphInfo.getTimeString(getContext())
             ));
         }
     }
@@ -296,12 +296,12 @@ public abstract class BasicGraphFragment extends Fragment {
     }
 
     /**
-     * Shows the info dialog defined in the InfoObject. Shows a toast if there are no graphs or
-     * if there is no InfoObject.
+     * Shows the info dialog defined in the GraphInfo. Shows a toast if there are no graphs or
+     * if there is no GraphInfo.
      */
     public void showInfo() {
-        if (graph_temperature != null && graph_percentage != null && infoObject != null) {
-            infoObject.showDialog(getContext());
+        if (graph_temperature != null && graph_percentage != null && graphInfo != null) {
+            graphInfo.showDialog(getContext());
         } else {
             ToastHelper.sendToast(getContext(), R.string.toast_no_data, LENGTH_SHORT);
         }

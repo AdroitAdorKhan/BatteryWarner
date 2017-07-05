@@ -315,9 +315,9 @@ public class GraphFragment extends BasicGraphFragment {
                     boolean isDatabaseEmpty = graph_percentage == null || graph_temperature == null;
                     String timeString;
                     if (isDatabaseEmpty) {
-                        timeString = InfoObject.getZeroTimeString(getContext());
+                        timeString = GraphInfo.getZeroTimeString(getContext());
                     } else {
-                        timeString = infoObject.getTimeString(getContext());
+                        timeString = graphInfo.getTimeString(getContext());
                     }
                     setNormalText(String.format(Locale.getDefault(), "%s... (%s)", getString(R.string.charging), timeString));
                 }
@@ -334,9 +334,9 @@ public class GraphFragment extends BasicGraphFragment {
         if (isDatabaseEmpty) { // no data yet (database is empty)
             setBigText(getString(R.string.toast_no_data), true);
         } else { // database is not empty
-            boolean hasEnoughData = infoObject.getTimeInMinutes() != 0;
+            boolean hasEnoughData = graphInfo.getTimeInMinutes() != 0;
             if (hasEnoughData) { // enough data
-                String timeString = infoObject.getTimeString(getContext());
+                String timeString = graphInfo.getTimeString(getContext());
                 setNormalText(String.format(Locale.getDefault(), "%s: %s", getString(R.string.info_charging_time), timeString));
             } else { // not enough data
                 setBigText(getString(R.string.toast_not_enough_data), true);
