@@ -168,17 +168,6 @@ public class GraphFragment extends BasicGraphFragment {
                 switch_temp.setChecked(
                         sharedPreferences.getBoolean(getString(R.string.pref_checkBox_temperature), getResources().getBoolean(R.bool.pref_checkBox_temperature_default))
                 );
-                // register ContentObserver
-                mContentObserver = new ContentObserver(new Handler()) {
-                    @Override
-                    public void onChange(boolean selfChange) {
-                        super.onChange(selfChange);
-                        graphView.removeAllSeries();
-                        loadGraphs();
-                    }
-                };
-                ContentResolver contentResolver = getContext().getContentResolver();
-                contentResolver.registerContentObserver(getUri(), false, mContentObserver);
             } else { // graph disabled
                 setBigText(getString(R.string.toast_disabled_in_settings), true);
             }
@@ -189,10 +178,26 @@ public class GraphFragment extends BasicGraphFragment {
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mContentObserver != null) {
-            getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.reload_menu, menu);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (IS_PRO && graphEnabled) {
+            // register ContentObserver
+            mContentObserver = new ContentObserver(new Handler()) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    super.onChange(selfChange);
+                    graphView.removeAllSeries();
+                    loadGraphs();
+                }
+            };
+            ContentResolver contentResolver = getContext().getContentResolver();
+            contentResolver.registerContentObserver(getUri(), false, mContentObserver);
         }
     }
 
@@ -220,9 +225,12 @@ public class GraphFragment extends BasicGraphFragment {
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.reload_menu, menu);
+    public void onStop() {
+        super.onStop();
+        // unregister ContentObserver
+        if (mContentObserver != null) {
+            getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        }
     }
 
     @Override

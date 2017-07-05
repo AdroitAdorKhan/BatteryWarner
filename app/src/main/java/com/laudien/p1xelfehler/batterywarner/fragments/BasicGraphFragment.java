@@ -108,8 +108,14 @@ public abstract class BasicGraphFragment extends Fragment {
         textView_chargingTime = view.findViewById(R.id.textView_chargingTime);
         initGraphView();
         graphView.getGridLabelRenderer().setLabelFormatter(getLabelFormatter());
-        loadGraphs();
         return view;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        graphView.removeAllSeries();
+        loadGraphs();
     }
 
     /**
