@@ -3,6 +3,7 @@ package com.laudien.p1xelfehler.batterywarner.fragments;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +11,9 @@ import android.view.ViewGroup;
 import com.laudien.p1xelfehler.batterywarner.data.GraphContract;
 
 import java.io.File;
+
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 /**
  * Fragment that loads a charging curve from a file path given in the arguments.
@@ -56,5 +60,12 @@ public class HistoryPageFragment extends BasicGraphFragment {
     @Override
     protected Uri getUri() {
         return GraphContract.GraphEntry.URI_GRAPH_HISTORY.buildUpon().appendPath(file.getName()).build();
+    }
+
+    @Override
+    void loadGraphs() {
+        if (ContextCompat.checkSelfPermission(getContext(), WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+            super.loadGraphs();
+        }
     }
 }
