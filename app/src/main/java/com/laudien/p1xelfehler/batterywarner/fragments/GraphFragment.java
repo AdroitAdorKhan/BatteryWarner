@@ -184,24 +184,6 @@ public class GraphFragment extends BasicGraphFragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (IS_PRO && graphEnabled) {
-            // register ContentObserver
-            mContentObserver = new ContentObserver(new Handler()) {
-                @Override
-                public void onChange(boolean selfChange) {
-                    super.onChange(selfChange);
-                    graphView.removeAllSeries();
-                    loadGraphs();
-                }
-            };
-            ContentResolver contentResolver = getContext().getContentResolver();
-            contentResolver.registerContentObserver(getUri(), false, mContentObserver);
-        }
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
         if (IS_PRO && graphEnabled) {
@@ -296,6 +278,17 @@ public class GraphFragment extends BasicGraphFragment {
     void loadGraphs() {
         if (IS_PRO && graphEnabled) {
             super.loadGraphs();
+            // register ContentObserver
+            mContentObserver = new ContentObserver(new Handler()) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    super.onChange(selfChange);
+                    graphView.removeAllSeries();
+                    loadGraphs();
+                }
+            };
+            ContentResolver contentResolver = getContext().getContentResolver();
+            contentResolver.registerContentObserver(getUri(), false, mContentObserver);
         } else {
             setBigText(getString(R.string.toast_not_pro), true);
         }
