@@ -93,6 +93,7 @@
 
         <provider
             android:name=".data.GraphContentProvider"
-            android:authorities="com.laudien.p1xelfehler.batterywarner.database" />
+            android:authorities="@string/package_name"
+            android:exported="false" />
     </application>
 </manifest>

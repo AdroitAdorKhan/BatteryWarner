@@ -4,11 +4,13 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Environment;
 
+import com.laudien.p1xelfehler.batterywarner.BuildConfig;
+
 import java.io.File;
 import java.io.FileReader;
 
 public class GraphContract {
-    public static final String AUTHORITY = "com.laudien.p1xelfehler.batterywarner.database";
+    public static final String AUTHORITY = BuildConfig.APPLICATION_ID;
     public static final String DATABASE_HISTORY_PATH = Environment.getExternalStorageDirectory() + "/BatteryWarner";
     public static final Uri BASE_CONTENT_URI = Uri.parse("content://" + AUTHORITY);
     public static final String PATH_CURRENT_GRAPH = "current_graph";
