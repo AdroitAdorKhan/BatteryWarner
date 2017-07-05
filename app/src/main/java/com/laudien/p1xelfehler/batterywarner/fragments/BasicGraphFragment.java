@@ -180,6 +180,8 @@ public abstract class BasicGraphFragment extends Fragment {
                 graphView.getViewport().setMaxX(1);
             }
         } else {
+            graph_temperature = null;
+            graph_percentage = null;
             graphView.getViewport().setMaxX(1);
         }
         setTimeText();

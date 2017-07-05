@@ -7,10 +7,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -49,7 +51,7 @@ import static java.text.DateFormat.SHORT;
 
 /**
  * A Fragment that shows the latest charging curve.
- * It loads the graphs from the database in the app directory and registers a DatabaseChangedListener
+ * It loads the graphs from the database in the app directory and registers a ContentObserver
  * to refresh automatically with the latest data.
  */
 public class GraphFragment extends BasicGraphFragment {
@@ -63,6 +65,7 @@ public class GraphFragment extends BasicGraphFragment {
         }
     };
     private boolean graphEnabled;
+    private ContentObserver mContentObserver;
 
     /**
      * Saves the graph in the app directory to the database directory in the external storage.
@@ -152,7 +155,7 @@ public class GraphFragment extends BasicGraphFragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable final ViewGroup container, @Nullable Bundle savedInstanceState) {
         setHasOptionsMenu(true);
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         graphEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_enabled), getResources().getBoolean(R.bool.pref_graph_enabled_default));
@@ -165,13 +168,30 @@ public class GraphFragment extends BasicGraphFragment {
                 switch_temp.setChecked(
                         sharedPreferences.getBoolean(getString(R.string.pref_checkBox_temperature), getResources().getBoolean(R.bool.pref_checkBox_temperature_default))
                 );
-            } else {
+                // register ContentObserver
+                mContentObserver = new ContentObserver(new Handler()) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        super.onChange(selfChange);
+                        graphView.removeAllSeries();
+                        loadGraphs();
+                    }
+                };
+                ContentResolver contentResolver = getContext().getContentResolver();
+                contentResolver.registerContentObserver(getUri(), false, mContentObserver);
+            } else { // graph disabled
                 setBigText(getString(R.string.toast_disabled_in_settings), true);
             }
-        } else {
+        } else { // free version
             setBigText(getString(R.string.toast_not_pro), true);
         }
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getContext().getContentResolver().unregisterContentObserver(mContentObserver);
     }
 
     @Override
