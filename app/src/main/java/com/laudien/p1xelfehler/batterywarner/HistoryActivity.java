@@ -25,7 +25,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
+import com.laudien.p1xelfehler.batterywarner.data.GraphContract;
 import com.laudien.p1xelfehler.batterywarner.fragments.HistoryPageFragment;
 import com.laudien.p1xelfehler.batterywarner.helper.KeyboardHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
@@ -41,7 +41,7 @@ import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 import static android.widget.Toast.LENGTH_SHORT;
-import static com.laudien.p1xelfehler.batterywarner.AppInfoHelper.DATABASE_HISTORY_PATH;
+import static com.laudien.p1xelfehler.batterywarner.data.GraphContract.DATABASE_HISTORY_PATH;
 import static com.laudien.p1xelfehler.batterywarner.fragments.HistoryPageFragment.EXTRA_FILE_PATH;
 
 /**
@@ -168,7 +168,6 @@ public class HistoryActivity extends BaseActivity implements ViewPager.OnPageCha
         File path = new File(DATABASE_HISTORY_PATH);
         File[] files = path.listFiles();
         ArrayList<File> fileList = new ArrayList<>();
-        GraphDbHelper dbHelper = GraphDbHelper.getInstance(this);
         if (files != null) { // there are files in the database folder
             Arrays.sort(files, new Comparator<File>() {
                 @Override
@@ -189,7 +188,7 @@ public class HistoryActivity extends BaseActivity implements ViewPager.OnPageCha
             });
             for (File file : files) {
                 // check if the file is a valid database file
-                if (dbHelper.isValidDatabase(file.getPath())) {
+                if (GraphContract.isValidDatabaseFile(file)) {
                     fileList.add(file); // add the file path to the fileList
                 }
             }

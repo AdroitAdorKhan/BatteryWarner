@@ -1,17 +1,13 @@
 package com.laudien.p1xelfehler.batterywarner.fragments;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.jjoe64.graphview.series.DataPoint;
-import com.jjoe64.graphview.series.LineGraphSeries;
-import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
+import com.laudien.p1xelfehler.batterywarner.data.GraphContract;
 
 import java.io.File;
 
@@ -57,35 +53,8 @@ public class HistoryPageFragment extends BasicGraphFragment {
         outState.putString(EXTRA_FILE_PATH, file.getPath());
     }
 
-    /**
-     * Loads the graphs out of the database from that the file path was given in the arguments.
-     *
-     * @return Returns an array of the graphs in the database or null if there was no file path
-     * given in the arguments.
-     */
     @Override
-    protected LineGraphSeries<DataPoint>[] getSeries() {
-        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            if (file != null && file.exists()) {
-                GraphDbHelper dbHelper = GraphDbHelper.getInstance(getContext());
-                return dbHelper.getGraphs(getContext(), dbHelper.getReadableDatabase(file.getPath()));
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    @Override
-    protected long getEndTime() {
-        GraphDbHelper dbHelper = GraphDbHelper.getInstance(getContext());
-        return dbHelper.getEndTime(dbHelper.getReadableDatabase(file.getPath()));
-    }
-
-    @Override
-    protected long getStartTime() {
-        GraphDbHelper dbHelper = GraphDbHelper.getInstance(getContext());
-        return dbHelper.getStartTime(dbHelper.getReadableDatabase(file.getPath()));
+    protected Uri getUri() {
+        return GraphContract.GraphEntry.URI_GRAPH_HISTORY.buildUpon().appendPath(file.getName()).build();
     }
 }

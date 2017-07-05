@@ -6,6 +6,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,7 +24,7 @@ import android.util.Log;
 
 import com.laudien.p1xelfehler.batterywarner.MainActivity;
 import com.laudien.p1xelfehler.batterywarner.R;
-import com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper;
+import com.laudien.p1xelfehler.batterywarner.data.GraphContract;
 import com.laudien.p1xelfehler.batterywarner.fragments.GraphFragment;
 import com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper;
@@ -59,7 +61,6 @@ import static com.laudien.p1xelfehler.batterywarner.helper.ServiceHelper.ID_DISC
 public class ChargingService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final int NOTIFICATION_ID = 2001;
     private final String TAG = getClass().getSimpleName();
-    private final GraphDbHelper graphDbHelper = GraphDbHelper.getInstance(this);
     private RingerModeChangedReceiver ringerModeChangedReceiver;
     private BatteryChangedReceiver batteryChangedReceiver;
     private boolean warningHighEnabled, isGraphEnabled, acEnabled, usbEnabled, wirelessEnabled,
@@ -415,11 +416,17 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
                 lastBatteryLevel = batteryLevel;
                 // add a value to the database
                 if (isGraphEnabled) {
+                    ContentResolver contentResolver = context.getContentResolver();
                     if (!graphChanged) { // reset table if it is the first value
                         graphChanged = true;
-                        graphDbHelper.resetTable();
+                        contentResolver.delete(
+                                GraphContract.GraphEntry.URI_CURRENT_GRAPH,
+                                null,
+                                null
+                        );
                     }
-                    graphDbHelper.addValue(timeNow, batteryLevel, temperature);
+                    ContentValues values = GraphContract.buildContentValues(timeNow, batteryLevel, temperature);
+                    contentResolver.insert(GraphContract.GraphEntry.URI_CURRENT_GRAPH, values);
                 }
                 // show warning high notification
                 if (warningHighEnabled && batteryLevel >= warningHigh) {
@@ -449,7 +456,9 @@ public class ChargingService extends Service implements SharedPreferences.OnShar
             // check if resume time is reached and charging is paused and not resumed yet
             if (!isCharging && stopChargingEnabled && smartChargingEnabled && isChargingPaused && !isChargingResumed && timeNow >= smartChargingResumeTime) {
                 if (isGraphEnabled) { // add a graph point for optics/correctness
-                    graphDbHelper.addValue(timeNow, batteryLevel, temperature);
+                    ContentResolver contentResolver = context.getContentResolver();
+                    ContentValues values = GraphContract.buildContentValues(timeNow, batteryLevel, temperature);
+                    contentResolver.insert(GraphContract.GraphEntry.URI_CURRENT_GRAPH, values);
                 }
                 resumeCharging();
             }

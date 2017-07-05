@@ -1,8 +1,16 @@
 package com.laudien.p1xelfehler.batterywarner.fragments;
 
+import android.content.ContentResolver;
+import android.content.res.Resources;
+import android.database.Cursor;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.graphics.ColorUtils;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,23 +26,18 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 import com.jjoe64.graphview.series.Series;
 import com.laudien.p1xelfehler.batterywarner.R;
+import com.laudien.p1xelfehler.batterywarner.data.GraphContract;
 import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 
 import java.util.Locale;
 
 import static android.widget.Toast.LENGTH_SHORT;
-import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_PERCENTAGE;
-import static com.laudien.p1xelfehler.batterywarner.data.GraphDbHelper.TYPE_TEMPERATURE;
 
 /**
  * Super class of all Fragments that are using the charging curve.
  */
 public abstract class BasicGraphFragment extends Fragment {
-
-    /**
-     * The Tag for logging purposes
-     */
-    final String TAG = getClass().getSimpleName();
+    private static final int MAX_DATA_POINTS = 300;
     /**
      * An instance of the InfoObject holding information about the charging curve.
      */
@@ -60,21 +63,21 @@ public abstract class BasicGraphFragment extends Fragment {
      */
     TextView textView_chargingTime;
     /**
-     * An array of both graphs that are displayed in the GraphView.
+     * The percentage graph that is displayed in the GraphView.
      */
-    LineGraphSeries<DataPoint>[] series;
+    LineGraphSeries<DataPoint> graph_percentage;
+    /**
+     * The temperature graph that is displayed in the GraphView.
+     */
+    LineGraphSeries<DataPoint> graph_temperature;
     private final CompoundButton.OnCheckedChangeListener onSwitchChangedListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
             Series s = null;
             if (compoundButton == switch_percentage) {
-                if (series != null) {
-                    s = series[TYPE_PERCENTAGE];
-                }
+                s = graph_percentage;
             } else if (compoundButton == switch_temp) {
-                if (series != null) {
-                    s = series[TYPE_TEMPERATURE];
-                }
+                s = graph_temperature;
             }
             if (s != null) {
                 if (checked) {
@@ -85,11 +88,16 @@ public abstract class BasicGraphFragment extends Fragment {
             }
         }
     };
+    private long startTime, endTime;
+    private int color_percentage;
+    private int color_percentageBackground;
+    private int color_temperature;
     private byte labelCounter;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        loadGraphColors();
         View view = inflater.inflate(R.layout.fragment_graph, container, false);
         graphView = view.findViewById(R.id.graphView);
         switch_percentage = view.findViewById(R.id.switch_percentage);
@@ -100,7 +108,7 @@ public abstract class BasicGraphFragment extends Fragment {
         textView_chargingTime = view.findViewById(R.id.textView_chargingTime);
         initGraphView();
         graphView.getGridLabelRenderer().setLabelFormatter(getLabelFormatter());
-        loadSeries();
+        loadGraphs();
         return view;
     }
 
@@ -109,32 +117,63 @@ public abstract class BasicGraphFragment extends Fragment {
      *
      * @return Returns an array of graphs.
      */
-    protected abstract LineGraphSeries<DataPoint>[] getSeries();
+    protected abstract Uri getUri();
 
     /**
-     * Method that provides the time the graph was created.
-     *
-     * @return Returns time the graph was created in milliseconds.
+     * Method that loads the graph from the database into the GraphView
+     * and sets the text of the TextView that shows the time.
+     * You can override it to only do it under some conditions
+     * (for example only allow it for the pro version).
      */
-    protected abstract long getEndTime();
-
-    protected abstract long getStartTime();
-
-    /**
-     * Method that loads the graph into the GraphView and sets the text of the TextView that show the time.
-     * You can override it to only do it under some conditions (for example only allow it for the pro version).
-     */
-    void loadSeries() {
-        series = getSeries();
-        if (series != null) {
+    void loadGraphs() {
+        ContentResolver contentResolver = getContext().getContentResolver();
+        Cursor mCursor = contentResolver.query(
+                getUri(),
+                null,
+                null,
+                null,
+                GraphContract.GraphEntry.COLUMN_TIME
+        );
+        // load graphs from Cursor
+        if (mCursor != null && mCursor.getCount() > 0) {
+            mCursor.moveToFirst();
+            graph_percentage = new LineGraphSeries<>();
+            graph_temperature = new LineGraphSeries<>();
+            double time, temperature;
+            int percentage;
+            long firstTime = mCursor.getLong(0);
+            startTime = mCursor.getLong(mCursor.getColumnIndex(GraphContract.GraphEntry.COLUMN_TIME));
+            do {
+                endTime = mCursor.getLong(0);
+                time = (double) (endTime - firstTime) / 60000;
+                percentage = mCursor.getInt(1);
+                temperature = (double) mCursor.getInt(2) / 10;
+                graph_percentage.appendData(
+                        new DataPoint(time, percentage),
+                        true,
+                        MAX_DATA_POINTS
+                );
+                graph_temperature.appendData(
+                        new DataPoint(time, temperature),
+                        true,
+                        MAX_DATA_POINTS
+                );
+            } while (mCursor.moveToNext());
+            mCursor.close();
+            // set graph colors
+            graph_percentage.setDrawBackground(true);
+            graph_percentage.setColor(color_percentage);
+            graph_percentage.setBackgroundColor(color_percentageBackground);
+            graph_temperature.setColor(color_temperature);
+            // add graphs to GraphView
             if (switch_percentage.isChecked()) {
-                graphView.addSeries(series[TYPE_PERCENTAGE]);
+                graphView.addSeries(graph_percentage);
             }
             if (switch_temp.isChecked()) {
-                graphView.addSeries(series[TYPE_TEMPERATURE]);
+                graphView.addSeries(graph_temperature);
             }
             createOrUpdateInfoObject();
-            double highestValue = series[TYPE_PERCENTAGE].getHighestValueX();
+            double highestValue = graph_percentage.getHighestValueX();
             if (highestValue > 0) {
                 graphView.getViewport().setMaxX(highestValue);
             } else {
@@ -153,21 +192,21 @@ public abstract class BasicGraphFragment extends Fragment {
     private void createOrUpdateInfoObject() {
         if (infoObject == null) {
             infoObject = new InfoObject(
-                    getStartTime(),
-                    getEndTime(),
-                    series[TYPE_PERCENTAGE].getHighestValueX(),
-                    series[TYPE_TEMPERATURE].getHighestValueY(),
-                    series[TYPE_TEMPERATURE].getLowestValueY(),
-                    series[TYPE_PERCENTAGE].getHighestValueY() - series[TYPE_PERCENTAGE].getLowestValueY()
+                    startTime,
+                    endTime,
+                    graph_percentage.getHighestValueX(),
+                    graph_temperature.getHighestValueY(),
+                    graph_temperature.getLowestValueY(),
+                    graph_percentage.getHighestValueY() - graph_percentage.getLowestValueY()
             );
         } else {
             infoObject.updateValues(
-                    getStartTime(),
-                    getEndTime(),
-                    series[TYPE_PERCENTAGE].getHighestValueX(),
-                    series[TYPE_TEMPERATURE].getHighestValueY(),
-                    series[TYPE_TEMPERATURE].getLowestValueY(),
-                    series[TYPE_PERCENTAGE].getHighestValueY() - series[TYPE_PERCENTAGE].getLowestValueY()
+                    startTime,
+                    endTime,
+                    graph_percentage.getHighestValueX(),
+                    graph_temperature.getHighestValueY(),
+                    graph_temperature.getLowestValueY(),
+                    graph_percentage.getHighestValueY() - graph_percentage.getLowestValueY()
             );
         }
     }
@@ -191,11 +230,29 @@ public abstract class BasicGraphFragment extends Fragment {
      */
     void reload() {
         graphView.removeAllSeries();
-        loadSeries();
+        loadGraphs();
+    }
+
+    private void loadGraphColors() {
+        boolean darkThemeEnabled = PreferenceManager.getDefaultSharedPreferences(getContext()).getBoolean(getString(R.string.pref_dark_theme_enabled), getResources().getBoolean(R.bool.pref_dark_theme_enabled_default));
+        // percentage
+        TypedValue typedValue = new TypedValue();
+        Resources.Theme theme = getContext().getTheme();
+        theme.resolveAttribute(R.attr.colorAccent, typedValue, true);
+        color_percentage = typedValue.data;
+        color_percentageBackground = ColorUtils.setAlphaComponent(color_percentage, 64);
+        // temperature
+        if (darkThemeEnabled) { // dark theme
+            color_temperature = Color.GREEN;
+        } else { // default theme
+            theme.resolveAttribute(R.attr.colorPrimary, typedValue, true);
+            color_temperature = typedValue.data;
+        }
     }
 
     /**
      * Provides the format of the text of the x and y axis of the graph.
+     *
      * @return Returns a LabelFormatter that is used in the GraphView.
      */
     private LabelFormatter getLabelFormatter() {
@@ -241,7 +298,7 @@ public abstract class BasicGraphFragment extends Fragment {
      * if there is no InfoObject.
      */
     public void showInfo() {
-        if (series != null && infoObject != null) {
+        if (graph_temperature != null && graph_percentage != null && infoObject != null) {
             infoObject.showDialog(getContext());
         } else {
             ToastHelper.sendToast(getContext(), R.string.toast_no_data, LENGTH_SHORT);
