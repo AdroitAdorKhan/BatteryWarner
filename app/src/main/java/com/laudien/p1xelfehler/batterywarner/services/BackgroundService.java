@@ -19,6 +19,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 import android.util.TypedValue;
 import android.widget.RemoteViews;
 
@@ -27,6 +28,7 @@ import com.laudien.p1xelfehler.batterywarner.database.DatabaseController;
 import com.laudien.p1xelfehler.batterywarner.helper.BatteryHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper;
 import com.laudien.p1xelfehler.batterywarner.helper.RootHelper;
+import com.laudien.p1xelfehler.batterywarner.helper.ToastHelper;
 import com.laudien.p1xelfehler.batterywarner.preferences.infoNotificationActivity.InfoNotificationActivity;
 
 import java.util.Locale;
@@ -43,12 +45,10 @@ import static android.os.Build.VERSION_CODES.O;
 import static android.view.View.GONE;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_NOT_ROOTED;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_STOP_CHARGING_NOT_WORKING;
-import static com.laudien.p1xelfehler.batterywarner.services.ResumeChargingButtonService.ACTION_RESUME_CHARGING_NOT_SAVE_GRAPH;
-import static com.laudien.p1xelfehler.batterywarner.services.ResumeChargingButtonService.ACTION_RESUME_CHARGING_SAVE_GRAPH;
+import static com.laudien.p1xelfehler.batterywarner.services.ResumeChargingButtonService.ACTION_RESUME_CHARGING;
 
 public class BackgroundService extends Service {
     public static final String ACTION_ENABLE_CHARGING = "enableCharging";
-    public static final String ACTION_ENABLE_CHARGING_AND_SAVE_GRAPH = "enableChargingAndSaveGraph";
     public static final String ACTION_DISABLE_CHARGING = "disableCharging";
     public static final String ACTION_RESET_ALL = "resetService";
     public static final int NOTIFICATION_ID_WARNING_HIGH = 2001;
@@ -70,6 +70,7 @@ public class BackgroundService extends Service {
     private NotificationCompat.Builder infoNotificationBuilder;
     private BroadcastReceiver screenOnOffReceiver;
     private BatteryChangedReceiver batteryChangedReceiver;
+    private BroadcastReceiver chargingReceiver;
     private NotificationManager notificationManager;
     @RequiresApi(LOLLIPOP)
     private BatteryManager batteryManager;
@@ -129,6 +130,9 @@ public class BackgroundService extends Service {
         IntentFilter onOffFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
         onOffFilter.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(screenOnOffReceiver, onOffFilter);
+        // charging receiver
+        chargingReceiver = new ChargingReceiver();
+        registerReceiver(chargingReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         // check if charging was disabled in file and show the notification for enabling it again
         AsyncTask.execute(new Runnable() {
             @Override
@@ -154,10 +158,6 @@ public class BackgroundService extends Service {
             resetService(); // reset service on any valid action
             switch (intent.getAction()) {
                 case ACTION_ENABLE_CHARGING: // enable charging action (used by notification button or Tasker)
-                    resumeCharging();
-                    break;
-                case ACTION_ENABLE_CHARGING_AND_SAVE_GRAPH: // enable charging and save graph (used by notification button)
-                    saveGraph();
                     resumeCharging();
                     break;
                 case ACTION_DISABLE_CHARGING: // disable charging action by Tasker
@@ -186,6 +186,7 @@ public class BackgroundService extends Service {
         super.onDestroy();
         unregisterReceiver(batteryChangedReceiver);
         unregisterReceiver(screenOnOffReceiver);
+        unregisterReceiver(chargingReceiver);
         onSaveState();
     }
 
@@ -266,19 +267,6 @@ public class BackgroundService extends Service {
                 }
             }
         });
-    }
-
-    private void saveGraph() {
-        boolean graphEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_enabled), getResources().getBoolean(R.bool.pref_graph_enabled_default));
-        boolean autoSaveGraphEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_autosave), getResources().getBoolean(R.bool.pref_graph_autosave_default));
-        if (graphEnabled && autoSaveGraphEnabled) {
-            AsyncTask.execute(new Runnable() {
-                @Override
-                public void run() {
-                    databaseController.saveGraph(BackgroundService.this);
-                }
-            });
-        }
     }
 
     private void showWarningHighNotification() {
@@ -370,8 +358,7 @@ public class BackgroundService extends Service {
     private Notification buildStopChargingNotification(boolean enableSound) {
         String messageText = getString(R.string.notification_charging_disabled);
         Intent enableChargingIntent = new Intent(this, ResumeChargingButtonService.class);
-        enableChargingIntent.setAction(chargingPausedByIllegalUsbCharging ?
-                ACTION_RESUME_CHARGING_NOT_SAVE_GRAPH : ACTION_RESUME_CHARGING_SAVE_GRAPH);
+        enableChargingIntent.setAction(ACTION_RESUME_CHARGING);
         PendingIntent enableChargingPendingIntent = PendingIntent.getService(this, NOTIFICATION_ID_WARNING_HIGH,
                 enableChargingIntent, PendingIntent.FLAG_CANCEL_CURRENT);
         // create base notification builder
@@ -526,7 +513,7 @@ public class BackgroundService extends Service {
             if (!chargingDisabledInFile) {
                 notificationManager.cancel(NOTIFICATION_ID_WARNING_LOW);
                 if (!chargingResumedBySmartCharging && !chargingResumedByAutoResume) {
-                    resetGraph();
+                    saveAndResetGraph();
                 }
             }
         }
@@ -536,9 +523,7 @@ public class BackgroundService extends Service {
          */
         private void onPowerDisconnected() {
             if (!chargingDisabledInFile) {
-                saveGraph();
                 notificationManager.cancel(NOTIFICATION_ID_WARNING_HIGH);
-                resetService();
             }
         }
 
@@ -691,10 +676,13 @@ public class BackgroundService extends Service {
             });
         }
 
-        private void resetGraph() {
+        private void saveAndResetGraph() {
             boolean graphEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_enabled), getResources().getBoolean(R.bool.pref_graph_enabled_default));
-            if (graphEnabled) {
-                databaseController.resetTable();
+            boolean autoSaveGraphEnabled = sharedPreferences.getBoolean(getString(R.string.pref_graph_autosave), getResources().getBoolean(R.bool.pref_graph_autosave_default));
+            if (graphEnabled && autoSaveGraphEnabled) {
+                if (databaseController.saveGraph(BackgroundService.this)) {
+                    databaseController.resetTable();
+                }
             }
         }
 
@@ -755,6 +743,19 @@ public class BackgroundService extends Service {
 
         private void onScreenTurnedOff() {
             screenOn = false;
+        }
+    }
+
+    private class ChargingReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!chargingResumedBySmartCharging && intent.getAction() != null && intent.getAction().equals(Intent.ACTION_POWER_CONNECTED)) {
+                int warningHigh = sharedPreferences.getInt(getString(R.string.pref_warning_high), getResources().getInteger(R.integer.pref_warning_high_default));
+                if (chargingDisabledInFile && lastBatteryLevel < warningHigh) {
+                    resetService();
+                    resumeCharging();
+                }
+            }
         }
     }
 }

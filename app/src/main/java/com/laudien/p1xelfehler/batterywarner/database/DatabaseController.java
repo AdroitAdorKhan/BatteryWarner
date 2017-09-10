@@ -171,8 +171,10 @@ public class DatabaseController {
      * @return Returns true if the saving was successful, false if not.
      */
     public boolean saveGraph(Context context) {
+        Log.d(TAG, "Saving graph...");
         // permission check
         if (ContextCompat.checkSelfPermission(context, WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED) {
+            Log.d(TAG, "No storage permission granted!");
             PreferenceManager.getDefaultSharedPreferences(context).edit()
                     .putBoolean(context.getString(R.string.pref_graph_autosave), false)
                     .apply();
@@ -184,7 +186,7 @@ public class DatabaseController {
         // return if graph disabled in settings or the database has not enough data
         if (graphEnabled) {
             Cursor cursor = databaseModel.getCursor();
-            if (cursor != null) {
+            if (cursor != null && !cursor.isClosed()) {
                 if (cursor.getCount() > 1) { // check if there is enough data
                     cursor.moveToLast();
                     long endTime = cursor.getLong(cursor.getColumnIndex(DatabaseContract.TABLE_COLUMN_TIME));
@@ -227,9 +229,15 @@ public class DatabaseController {
                     }
                     Log.d("GraphSaver", "Graph saved!");
                     result = true;
+                } else {
+                    Log.d(TAG, "Not enough data to save!");
                 }
                 cursor.close();
+            } else {
+                Log.d(TAG, "The cursor is null or the database is closed!");
             }
+        } else {
+            Log.d(TAG, "Graphs are disabled in preferences!");
         }
         Log.d(TAG, "Graph Saving successful: " + result);
         return result;

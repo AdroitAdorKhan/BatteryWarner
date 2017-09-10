@@ -21,14 +21,9 @@ public class ResumeChargingButtonService extends IntentService {
      */
     public static final String ACTION_ENABLE_USB_CHARGING = "enableUsbCharging";
     /**
-     * 'Enable Charging' clicked. This will save the graph.
+     * 'Resume Charging' clicked.
      */
-    public static final String ACTION_RESUME_CHARGING_SAVE_GRAPH = "resumeChargingSaveGraph";
-    /**
-     * 'Enable Usb Charging' clicked if charging is not allowed. The BackgroundService will not
-     * save the graph then.
-     */
-    public static final String ACTION_RESUME_CHARGING_NOT_SAVE_GRAPH = "resumeChargingNotSaveGraph";
+    public static final String ACTION_RESUME_CHARGING = "resumeCharging";
 
     public ResumeChargingButtonService() {
         super(null);
@@ -49,11 +44,8 @@ public class ResumeChargingButtonService extends IntentService {
                     sharedPreferences.edit()
                             .putBoolean(getString(R.string.pref_usb_charging_disabled), false)
                             .apply();
-                case ACTION_RESUME_CHARGING_NOT_SAVE_GRAPH: // 'Enable charging' button if the notification was called because of not allowed charging
+                case ACTION_RESUME_CHARGING: // 'Resume charging' button
                     backgroundServiceIntent.setAction(BackgroundService.ACTION_ENABLE_CHARGING);
-                    break;
-                case ACTION_RESUME_CHARGING_SAVE_GRAPH: // normal 'Enable charging' button
-                    backgroundServiceIntent.setAction(BackgroundService.ACTION_ENABLE_CHARGING_AND_SAVE_GRAPH);
                     break;
                 default:
                     throw new RuntimeException("Unknown action!");
