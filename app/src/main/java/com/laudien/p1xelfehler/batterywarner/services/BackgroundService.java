@@ -52,6 +52,7 @@ public class BackgroundService extends Service {
     public static final int NOTIFICATION_ID_WARNING_HIGH = 2001;
     public static final int NOTIFICATION_ID_WARNING_LOW = 2002;
     private static final int NOTIFICATION_ID_INFO = 2003;
+    private static final int NOTIFICATION_ID_USB_CHARGING = 2004;
     private static final int NOTIFICATION_LED_ON_TIME = 500;
     private static final int NOTIFICATION_LED_OFF_TIME = 2000;
     private boolean chargingPausedBySmartCharging = false;
@@ -142,8 +143,7 @@ public class BackgroundService extends Service {
                         NotificationHelper.cancelNotification(BackgroundService.this,
                                 NOTIFICATION_ID_WARNING_HIGH, NOTIFICATION_ID_WARNING_LOW);
                         if (chargingPausedByIllegalUsbCharging) {
-                            Notification notification = buildUsbChargingNotification();
-                            notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, notification);
+                            showUsbChargingNotification();
                         }
                     }
                 } catch (Exception ignored) {
@@ -236,6 +236,7 @@ public class BackgroundService extends Service {
             public void run() {
                 try {
                     RootHelper.disableCharging();
+                    chargingDisabledInFile = true;
                 } catch (RootHelper.NotRootedException e) {
                     e.printStackTrace();
                     NotificationHelper.showNotification(BackgroundService.this, ID_NOT_ROOTED);
@@ -258,7 +259,8 @@ public class BackgroundService extends Service {
                 try {
                     RootHelper.enableCharging();
                     chargingDisabledInFile = false;
-                    notificationManager.cancel(NOTIFICATION_ID_WARNING_HIGH); // cancel stop charging notification
+                    // cancel notifications
+                    NotificationHelper.cancelNotification(BackgroundService.this, NOTIFICATION_ID_WARNING_HIGH, NOTIFICATION_ID_USB_CHARGING);
                 } catch (RootHelper.NotRootedException e) {
                     e.printStackTrace();
                     chargingDisabledInFile = true;
@@ -279,7 +281,7 @@ public class BackgroundService extends Service {
 
     private void showUsbChargingNotification() {
         Notification stopChargingNotification = buildUsbChargingNotification();
-        notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, stopChargingNotification);
+        notificationManager.notify(NOTIFICATION_ID_USB_CHARGING, stopChargingNotification);
     }
 
     private Notification buildInfoNotification(RemoteViews content, String message) {
@@ -368,7 +370,7 @@ public class BackgroundService extends Service {
         Intent usbIntent = new Intent(this, BackgroundService.class);
         usbIntent.setAction(ACTION_ENABLE_USB_CHARGING);
         PendingIntent usbPendingIntent = PendingIntent.getService(this,
-                NOTIFICATION_ID_WARNING_HIGH, usbIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+                NOTIFICATION_ID_USB_CHARGING, usbIntent, PendingIntent.FLAG_CANCEL_CURRENT);
         // create base notification builder
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -504,6 +506,7 @@ public class BackgroundService extends Service {
                 // stop charging if it is not allowed to charge
                 if (!chargingPausedByIllegalUsbCharging && isCharging && !isChargingAllowed(chargingType)) {
                     chargingPausedByIllegalUsbCharging = true;
+                    showUsbChargingNotification();
                     stopCharging();
                     return;
                 }
@@ -778,7 +781,8 @@ public class BackgroundService extends Service {
         public void onReceive(Context context, Intent intent) {
             if (!chargingResumedBySmartCharging && intent.getAction() != null && intent.getAction().equals(Intent.ACTION_POWER_CONNECTED)) {
                 int warningHigh = sharedPreferences.getInt(getString(R.string.pref_warning_high), getResources().getInteger(R.integer.pref_warning_high_default));
-                if (chargingDisabledInFile && lastBatteryLevel < warningHigh) {
+                if (chargingDisabledInFile) {
+                    ToastHelper.sendToast(context, "What da fish?");
                     resetService();
                     resumeCharging();
                 }
