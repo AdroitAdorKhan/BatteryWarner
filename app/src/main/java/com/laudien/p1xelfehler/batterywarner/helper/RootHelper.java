@@ -2,9 +2,14 @@ package com.laudien.p1xelfehler.batterywarner.helper;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Looper;
+import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.util.Log;
+
+import com.laudien.p1xelfehler.batterywarner.R;
 
 import java.io.File;
 import java.util.List;
@@ -37,6 +42,20 @@ public final class RootHelper {
             throw new InMainThreadException();
         }
         return Shell.SU.available();
+    }
+
+    public static boolean isAnyRootPreferenceEnabled(Context context, @Nullable SharedPreferences sharedPreferences) {
+        if (sharedPreferences == null) {
+            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        }
+        String[] rootPreferences = context.getResources().getStringArray(R.array.root_preferences);
+        for (String key : rootPreferences) {
+            boolean enabled = sharedPreferences.getBoolean(key, false);
+            if (enabled) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

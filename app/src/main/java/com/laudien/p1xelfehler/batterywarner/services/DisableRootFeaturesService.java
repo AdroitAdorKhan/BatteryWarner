@@ -20,13 +20,7 @@ public class DisableRootFeaturesService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         ToastHelper.sendToast(this, R.string.toast_root_denied, LENGTH_LONG);
-        String[] rootPreferences = getResources().getStringArray(R.array.root_preferences);
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        for (String key : rootPreferences) {
-            editor.putBoolean(key, false);
-        }
-        editor.apply();
+        disableAllRootPreferences();
         stopSelf();
         return super.onStartCommand(intent, flags, startId);
     }
@@ -35,5 +29,15 @@ public class DisableRootFeaturesService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private void disableAllRootPreferences() {
+        String[] rootPreferences = getResources().getStringArray(R.array.root_preferences);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        for (String key : rootPreferences) {
+            editor.putBoolean(key, false);
+        }
+        editor.apply();
     }
 }
