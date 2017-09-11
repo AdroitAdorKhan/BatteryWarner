@@ -19,7 +19,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
 import android.util.TypedValue;
 import android.widget.RemoteViews;
 
@@ -34,7 +33,6 @@ import com.laudien.p1xelfehler.batterywarner.preferences.infoNotificationActivit
 import java.util.Locale;
 
 import static android.app.Notification.PRIORITY_HIGH;
-import static android.app.Notification.PRIORITY_LOW;
 import static android.os.BatteryManager.EXTRA_PLUGGED;
 import static android.os.BatteryManager.EXTRA_TEMPERATURE;
 import static android.os.BatteryManager.EXTRA_VOLTAGE;
@@ -45,10 +43,10 @@ import static android.os.Build.VERSION_CODES.O;
 import static android.view.View.GONE;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_NOT_ROOTED;
 import static com.laudien.p1xelfehler.batterywarner.helper.NotificationHelper.ID_STOP_CHARGING_NOT_WORKING;
-import static com.laudien.p1xelfehler.batterywarner.services.ResumeChargingButtonService.ACTION_RESUME_CHARGING;
 
 public class BackgroundService extends Service {
     public static final String ACTION_ENABLE_CHARGING = "enableCharging";
+    public static final String ACTION_ENABLE_USB_CHARGING = "enableUsbCharging";
     public static final String ACTION_DISABLE_CHARGING = "disableCharging";
     public static final String ACTION_RESET_ALL = "resetService";
     public static final int NOTIFICATION_ID_WARNING_HIGH = 2001;
@@ -143,8 +141,10 @@ public class BackgroundService extends Service {
                     if (chargingDisabledInFile) {
                         NotificationHelper.cancelNotification(BackgroundService.this,
                                 NOTIFICATION_ID_WARNING_HIGH, NOTIFICATION_ID_WARNING_LOW);
-                        Notification notification = buildStopChargingNotification(false);
-                        notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, notification);
+                        if (chargingPausedByIllegalUsbCharging) {
+                            Notification notification = buildUsbChargingNotification();
+                            notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, notification);
+                        }
                     }
                 } catch (Exception ignored) {
                 }
@@ -157,11 +157,17 @@ public class BackgroundService extends Service {
         if (intent != null && intent.getAction() != null) {
             resetService(); // reset service on any valid action
             switch (intent.getAction()) {
-                case ACTION_ENABLE_CHARGING: // enable charging action (used by notification button or Tasker)
+                case ACTION_ENABLE_USB_CHARGING:
+                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                    sharedPreferences.edit()
+                            .putBoolean(getString(R.string.pref_usb_charging_disabled), false)
+                            .apply();
+                    ToastHelper.sendToast(this, "USB charging enabled!");
+                case ACTION_ENABLE_CHARGING: // enable charging action by Tasker
                     resumeCharging();
                     break;
                 case ACTION_DISABLE_CHARGING: // disable charging action by Tasker
-                    stopCharging(false);
+                    stopCharging();
                     break;
                 case ACTION_RESET_ALL: // just reset the service
                     break;
@@ -223,16 +229,13 @@ public class BackgroundService extends Service {
         lastBatteryLevel = -1;
     }
 
-    private void stopCharging(final boolean enableSound) {
+    private void stopCharging() {
         chargingDisabledInFile = true;
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     RootHelper.disableCharging();
-                    notificationManager.cancel(NOTIFICATION_ID_WARNING_HIGH);
-                    Notification stopChargingNotification = buildStopChargingNotification(enableSound);
-                    notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, stopChargingNotification);
                 } catch (RootHelper.NotRootedException e) {
                     e.printStackTrace();
                     NotificationHelper.showNotification(BackgroundService.this, ID_NOT_ROOTED);
@@ -272,6 +275,11 @@ public class BackgroundService extends Service {
     private void showWarningHighNotification() {
         Notification notification = buildWarningHighNotification();
         notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, notification);
+    }
+
+    private void showUsbChargingNotification() {
+        Notification stopChargingNotification = buildUsbChargingNotification();
+        notificationManager.notify(NOTIFICATION_ID_WARNING_HIGH, stopChargingNotification);
     }
 
     private Notification buildInfoNotification(RemoteViews content, String message) {
@@ -355,37 +363,52 @@ public class BackgroundService extends Service {
         }
     }
 
-    private Notification buildStopChargingNotification(boolean enableSound) {
-        String messageText = getString(R.string.notification_charging_disabled);
-        Intent enableChargingIntent = new Intent(this, ResumeChargingButtonService.class);
-        enableChargingIntent.setAction(ACTION_RESUME_CHARGING);
-        PendingIntent enableChargingPendingIntent = PendingIntent.getService(this, NOTIFICATION_ID_WARNING_HIGH,
-                enableChargingIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+    private Notification buildUsbChargingNotification() {
+        String messageText = "Charging has been disabled, because USB charging is disabled in Settings. Click here to change this setting and start charging!";
+        Intent usbIntent = new Intent(this, BackgroundService.class);
+        usbIntent.setAction(ACTION_ENABLE_USB_CHARGING);
+        PendingIntent usbPendingIntent = PendingIntent.getService(this,
+                NOTIFICATION_ID_WARNING_HIGH, usbIntent, PendingIntent.FLAG_CANCEL_CURRENT);
         // create base notification builder
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(messageText)
                 .setStyle(NotificationHelper.getBigTextStyle(messageText))
-                .setLights(Color.GREEN, NOTIFICATION_LED_ON_TIME, NOTIFICATION_LED_OFF_TIME)
-                .setOngoing(true)
+                .setContentIntent(usbPendingIntent)
+                .addAction(R.drawable.ic_battery_charging_full_white_24dp, getString(R.string.notification_button_enable_usb_charging), usbPendingIntent);
+        if (SDK_INT >= O) {
+            // TODO: create a new notification channel for this
+            builder.setChannelId(getString(R.string.channel_battery_warnings));
+        } else { // API lower than 26 (Android Oreo)
+            builder.setPriority(PRIORITY_HIGH);
+        }
+        return builder.build();
+    }
+
+    private Notification buildStopChargingNotification() {
+        String messageText = "Charging has been disabled by Tasker. Click here to resume charging!";
+        Intent enableChargingIntent = new Intent(this, BackgroundService.class);
+        enableChargingIntent.setAction(ACTION_ENABLE_CHARGING);
+        PendingIntent enableChargingPendingIntent = PendingIntent.getService(this,
+                NOTIFICATION_ID_WARNING_HIGH, enableChargingIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        // create base notification builder
+        Notification.Builder builder = new Notification.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(messageText)
+                .setStyle(NotificationHelper.getBigTextStyle(messageText))
                 .setContentIntent(enableChargingPendingIntent)
+                .setAutoCancel(true)
+                .setOngoing(true)
+                .setLights(Color.GREEN, NOTIFICATION_LED_ON_TIME, NOTIFICATION_LED_OFF_TIME)
+                .setVibrate(NotificationHelper.VIBRATE_PATTERN)
                 .addAction(R.drawable.ic_battery_charging_full_white_24dp, getString(R.string.notification_button_enable_charging), enableChargingPendingIntent);
         if (SDK_INT >= O) {
             builder.setChannelId(getString(R.string.channel_battery_warnings));
         } else { // API lower than 26 (Android Oreo)
-            builder.setPriority(PRIORITY_LOW);
-            if (enableSound) {
-                builder.setSound(NotificationHelper.getWarningSound(this, sharedPreferences, true));
-            }
-        }
-        // add 'Enable Usb Charging' button if needed
-        if (chargingPausedByIllegalUsbCharging) {
-            Intent usbIntent = new Intent(this, ResumeChargingButtonService.class);
-            usbIntent.setAction(ResumeChargingButtonService.ACTION_ENABLE_USB_CHARGING);
-            PendingIntent usbPendingIntent = PendingIntent.getService(this,
-                    NOTIFICATION_ID_WARNING_HIGH, usbIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-            builder.addAction(R.drawable.ic_battery_charging_full_white_24dp, getString(R.string.notification_button_enable_usb_charging), usbPendingIntent);
+            builder.setSound(NotificationHelper.getWarningSound(this, sharedPreferences, true))
+                    .setPriority(PRIORITY_HIGH);
         }
         return builder.build();
     }
@@ -406,7 +429,8 @@ public class BackgroundService extends Service {
         if (Build.VERSION.SDK_INT >= O) {
             builder.setChannelId(getString(R.string.channel_battery_warnings));
         } else {
-            builder.setPriority(PRIORITY_HIGH);
+            builder.setSound(NotificationHelper.getWarningSound(this, sharedPreferences, true))
+                    .setPriority(PRIORITY_HIGH);
         }
         return builder.build();
     }
@@ -480,7 +504,7 @@ public class BackgroundService extends Service {
                 // stop charging if it is not allowed to charge
                 if (!chargingPausedByIllegalUsbCharging && isCharging && !isChargingAllowed(chargingType)) {
                     chargingPausedByIllegalUsbCharging = true;
-                    stopCharging(false);
+                    stopCharging();
                     return;
                 }
                 // handle change in charging state
@@ -570,8 +594,10 @@ public class BackgroundService extends Service {
                                 if (smartChargingEnabled) {
                                     chargingPausedBySmartCharging = true;
                                 }
-                                boolean enableSound = warningEnabled && !chargingResumedByAutoResume;
-                                stopCharging(enableSound);
+                                if (warningEnabled && !chargingResumedByAutoResume) {
+                                    showWarningHighNotification();
+                                }
+                                stopCharging();
                                 chargingResumedByAutoResume = false;
                             } else if (warningEnabled) { // stop charging is disabled
                                 showWarningHighNotification();
@@ -608,7 +634,8 @@ public class BackgroundService extends Service {
                     if (batteryLevel >= smartChargingLimit) {
                         chargingPausedBySmartCharging = false;
                         chargingResumedBySmartCharging = false;
-                        stopCharging(true);
+                        showWarningHighNotification();
+                        stopCharging();
                     }
                 }
             }
