@@ -125,16 +125,16 @@
     <string name="toast_theme_changed">সেটিংস বন্ধ করলেই থিম চালু হবে!</string>
 
     <!-- new strings -->
-    <string name="summary_power_saving_mode">Enables the power saving mode when the battery low warning was triggered.</string>
-    <string name="title_power_saving_mode">Enable power saving mode</string>
-    <string name="notification_button_toggle_power_saving">Toggle power saving mode</string>
-    <string name="info_endTime">Finished</string>
-    <string name="info_startTime">Start</string>
-    <string name="title_reset_battery_stats">Reset battery stats</string>
-    <string name="summary_reset_battery_stats">Reset the battery stats after the battery high warning was triggered.</string>
-    <string name="title_discharging_notification">Enable discharging notification</string>
-    <string name="title_charging_service">Charging Service</string>
-    <string name="title_discharging_service">Discharging Service</string>
+    <string name="summary_power_saving_mode">শক্তি সঞ্চয় ব্যবস্থা সচল করবে যখন সর্বনিম্ন ব্যাটারি সীমায় পৌঁছবে। </string>
+    <string name="title_power_saving_mode">শক্তি সঞ্চয় ব্যবস্থা সচল</string>
+    <string name="notification_button_toggle_power_saving">শক্তি সঞ্চয় ব্যবস্থা পরিবর্তন</string>
+    <string name="info_endTime">শেষ</string>
+    <string name="info_startTime">শুরু</string>
+    <string name="title_reset_battery_stats">ব্যাটারি তথ্য পুনঃস্থাপন</string>
+    <string name="summary_reset_battery_stats">ব্যাটারি তথ্য পুনঃস্থাপন করবে যখন সর্বোচ্চ ব্যাটারি সীমায় পৌঁছবে।</string>
+    <string name="title_discharging_notification">ব্যয়িত চার্জ নোটিফিকেশন</string>
+    <string name="title_charging_service">চার্জিং ব্যবস্থা</string>
+    <string name="title_discharging_service">ব্যয়িত চার্জিং ব্যবস্থা</string>
     <string name="summary_notification_sound">Since android O you have to set the sound in the notification settings of android. Click here to open it!</string>
     <string name="title_charging_notification">Enable charging notification</string>
     <string name="summary_warning_high_enabled">Show a high battery warning when the set percentage is reached.</string>
